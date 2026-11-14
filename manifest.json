@@ -1,0 +1,78 @@
+{
+  "manifest_version": "0.3",
+  "name": "omp-session-bridge",
+  "display_name": "Pi on the Side!",
+  "version": "1.0.0",
+  "description": "Pi on the Side! lets your AI assistant control multiple OMP sessions through a local connection.",
+  "long_description": "Pi on the Side! lets your AI assistant control multiple Oh My Pi (OMP) sessions through a reliable local connection. `pots install` connects your saved projects by itself, up to 64 at once (projects connected earlier keep their places), and one local assistant can send an approved task. Check progress and what the bridge recorded; cancel future bridge work before OMP accepts it; use named connections for multiple projects; pause new dispatch; review uncertain outcomes without automatic replay. Limited local status and diagnostic notes can help troubleshoot; review notes before sharing. Notes exclude prompts and credentials and do not prove task success. Connecting a project is not readiness: the assistant can send work only to a project opened through its Pi on the Side launcher. Managed updates verify packages and keep rollback; Windows removal is recoverable by default, with permanent deletion requiring a second confirmation. Queued work may continue through a temporary assistant-connection interruption only while OMP and its provider remain available. Receipts are observations, not proof of success. No network listener or provider-quota bypass. Designed to work across OMP versions; compatibility problems are bugs to fix, though not every past or future release has been tested.",
+  "author": {
+    "name": "Jumpstile"
+  },
+  "license": "MIT",
+  "server": {
+    "type": "node",
+    "entry_point": "bin/mcp.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/bin/mcp.mjs"
+      ],
+      "env": {
+        "OMP_BRIDGE_STATE": "${user_config.state_root}",
+        "OMP_BRIDGE_CONTROLLER": "${user_config.controller_file}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "bridge_status",
+      "description": "Check recorded progress for the selected project, or list named project connections. Prompts and conversation text are not returned."
+    },
+    {
+      "name": "bridge_lanes_status",
+      "description": "Read bounded lane activity and queue attention state for the coordinator. Does not return task text and never reviews or replays unknown receipts."
+    },
+    {
+      "name": "bridge_lane_watch_lines",
+      "description": "Print only the lane watcher lines (IDLE, BUSY, RESULT, GONE, ERROR, EXPIRED) not shown before, for every registered lane. At most 100 lines come back per call; when \"more\" is true, more lines can be fetched, so call again. A lane named in \"unreadable\" never keeps \"more\" on, because calling again cannot help it. An ERROR line means the watcher could not read its files; check that lane locally. An EXPIRED line means a queued task was not started because its time ran out; tell the user to queue it again. An empty list means nothing changed. Reads local files only; no task text, no review or replay."
+    },
+    {
+      "name": "bridge_coordinator_heartbeat",
+      "description": "Refresh the directing coordinator marker for one explicit lane using its existing controller capability. Suppresses resume watchdog launches for 180 seconds; never reviews or replays work."
+    },
+    {
+      "name": "bridge_enqueue",
+      "description": "Send one task you approve to the selected OMP session. It expires after 24 hours (waiting behind a long task counts) and never starts follow-on work automatically. Provider availability and OMP approvals still apply. Provide a fresh plan ID; retrying identical content returns the existing plan."
+    },
+    {
+      "name": "bridge_receipt",
+      "description": "See what the bridge recorded for one task. A receipt is not proof that the task succeeded."
+    },
+    {
+      "name": "bridge_cancel",
+      "description": "Cancel future bridge steps before they start. This cannot stop work OMP has accepted; use OMP's own controls for that."
+    }
+  ],
+  "compatibility": {
+    "platforms": [
+      "win32"
+    ],
+    "runtimes": {
+      "node": ">=22"
+    }
+  },
+  "user_config": {
+    "controller_file": {
+      "type": "file",
+      "title": "Optional private write-access file",
+      "description": "This file lets the assistant send or cancel tasks for the selected OMP session. The install creates and acquires it. Other directing assistants need their own file and an explicit handoff. Leave blank for read-only checks. Never share its contents.",
+      "required": false
+    },
+    "state_root": {
+      "type": "directory",
+      "title": "Assistant setup folder",
+      "description": "Type the Assistant folder that `pots install --details` lists. It lists the named project connections the install made for your saved projects. Changed or mismatched sessions are refused.",
+      "required": true
+    }
+  }
+}

@@ -1,0 +1,22 @@
+node_modules/
+.bridge-state/
+*.log
+*.tmp
+local-config.json
+plan.private.json
+coverage/
+*.mcpb
+POTS*-RESULT.md
+POTS*-HASHES.json
+POTS*-OUT/
+# Lane work files at the top of the tree (results, hashes, task notes, build outputs) never belong in the repository.
+/*-RESULT.md
+/*-HASHES.json
+/*-TASK.md
+/RESULT.md
+/HASHES.json
+/RC9-LATER.md
+/dist-*/
+# Any other file at the top of the tree that starts with POTS- (design notes, results, hashes) or is a diff of a lane's work.
+/POTS-*
+/*.diff

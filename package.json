@@ -1,0 +1,18 @@
+{
+  "name": "omp-session-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "runtimeFiles": ["NOTICE.md","SECURITY.md","bin/bridge.mjs","bin/coordinator-resume.mjs","bin/mcp.mjs","extension/bridge.ts","package.json","src/autosetup.mjs","src/cli.mjs","src/clients.mjs","src/connections.mjs","src/control.mjs","src/controller.mjs","src/coordinator-heartbeat.mjs","src/coordinator-resume-setup.mjs","src/coordinator-resume.mjs","src/host.mjs","src/lane-status.mjs","src/lane-watch.mjs","src/live.mjs","src/mcp.mjs","src/model-setup.mjs","src/setup.mjs","src/transcript.mjs","src/uninstall.mjs","src/update.mjs","src/zip.mjs"],
+  "bin": {
+    "omp-bridge": "bin/bridge.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/autosetup.mjs && node --check src/clients.mjs && node --check src/connections.mjs && node --check src/control.mjs && node --check src/controller.mjs && node --check src/transcript.mjs && node --check src/host.mjs && node --check src/live.mjs && node --check src/setup.mjs && node --check src/cli.mjs && node --check src/mcp.mjs && node --check src/coordinator-heartbeat.mjs && node --check src/lane-status.mjs && node --check src/lane-watch.mjs && node --check src/coordinator-resume.mjs && node --check src/coordinator-resume-setup.mjs && node --check bin/coordinator-resume.mjs && node --check src/model-setup.mjs && node --check src/uninstall.mjs && node --check src/update.mjs && node --check src/zip.mjs && node --check bin/bridge.mjs && node --check bin/mcp.mjs && node --check scripts/pack-mcpb.mjs"
+  }
+}
