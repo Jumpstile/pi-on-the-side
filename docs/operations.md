@@ -10,7 +10,7 @@ The internal lock prevents a second bridge supervisor sharing its state root/ses
 
 ## Status and troubleshooting
 
-Use `node bin/bridge.mjs status "<state-folder>"`. No receipt means queued, not running. If the lane's own session is not running, the entry also says `"note": "queued, session not running"`: nothing will pick that task up until the lane is restored (`pots lane restore`), so restore it or cancel the task. When you queue a task for such a lane, `queue` and `enqueue` still queue it, print a warning, and exit with code 3 instead of 0. Receipts are durable observations, not a heartbeat; an old submitted receipt cannot establish current liveness. A tool/agent can hang beyond the plan deadline; the next bridge tick expires future authority, while execution may continue.
+Use `node bin/bridge.mjs status "<state-folder>"`. No receipt means queued, not running. If the lane's own session is not running, the entry also says `"note": "queued, session not running"`: nothing will pick that task up until the lane is restored (`pots lane restore`), so restore it or cancel the task (after a cancel, the entry says the cancel is recorded). When you queue a task for such a lane, `queue` and `enqueue` still queue it, print a warning, and exit with code 3 instead of 0. Receipts are durable observations, not a heartbeat; an old submitted receipt cannot establish current liveness. A tool/agent can hang beyond the plan deadline; the next bridge tick expires future authority, while execution may continue.
 
 | Symptom | Action |
 | --- | --- |

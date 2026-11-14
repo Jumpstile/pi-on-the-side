@@ -50,6 +50,7 @@ const EXTENSION = path.join(CHECKOUT, 'extension', 'bridge.ts');
 const NOT_INSTALLED = 'This command works from the installed copy. Install Pi on the Side first (the quickstart has the one line), then use the pots command.';
 const BOTH_WAKEUP_FLAGS = 'Use either --coordinator-wakeups or --no-coordinator-wakeups, not both. Nothing was changed.';
 const OFF_WITH_RESUME = 'Use --no-coordinator-wakeups without the resume options (--resume-cli, --resume-cloud, --handoff-file and the others), or leave it out. Nothing was changed.';
+const CANCEL_RECORDED_NOTE = 'cancel recorded; the task will not run and is marked cancelled when the lane is next running';
 const NO_SUCH_TASK = 'There is no queued task with that id. Next: run pots status <state-folder> to see the ids of the queued tasks, then try again.';
 // The two ways the queue itself refuses a task, in plain words (the task was not stored, so nothing was started).
 export const QUEUE_REFUSED = { 'queue capacity reached': 'The queue for this project is full, so the task was not queued. Next: wait for queued tasks to finish or cancel some with pots cancel, then try again.',
@@ -563,7 +564,13 @@ async function dispatch(argv, deps) {
       const store = await storeFor(target, deps.now);
       const rows = [];
       const up = await laneSessionRunning(store);
-      for (const id of await store.ids()) rows.push(await store.receipt(id) ?? { id, state: 'queued', taskSuccess: 'unverified', ...(up ? {} : { note: NOT_RUNNING_NOTE }) });
+      for (const id of await store.ids()) {
+        const receipt = await store.receipt(id);
+        if (receipt) { rows.push(receipt); continue; }
+        // A cancel is recorded at once, but the task only ends when a running lane reads it: say so instead of a bare queued.
+        const note = await store.cancelled(id) ? CANCEL_RECORDED_NOTE : up ? null : NOT_RUNNING_NOTE;
+        rows.push({ id, state: 'queued', taskSuccess: 'unverified', ...(note ? { note } : {}) });
+      }
       deps.stdout(JSON.stringify(rows, null, 2));
       return 0;
     }

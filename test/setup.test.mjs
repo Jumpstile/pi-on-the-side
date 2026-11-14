@@ -435,3 +435,12 @@ test('a task queued for a lane whose session is running gets no warning and the 
   const rows = JSON.parse((await f.call(['status', f.state])).out);
   assert.deepEqual(rows.map(row => [row.state, row.note]), [['queued', undefined]]);
 });
+
+test('a cancelled task for a lane that is not running says the cancel is recorded', async t => {
+  const f = await fixture(t);
+  await f.call(['setup', f.session, f.state]);
+  const id = (await f.call(['queue', f.state, 'Synthetic fixture prompt.'])).out.trim();
+  assert.equal((await f.call(['cancel', f.state, id])).code, 0);
+  const rows = JSON.parse((await f.call(['status', f.state])).out);
+  assert.deepEqual(rows.map(row => [row.id, row.state, row.note]), [[id, 'queued', 'cancel recorded; the task will not run and is marked cancelled when the lane is next running']]);
+});

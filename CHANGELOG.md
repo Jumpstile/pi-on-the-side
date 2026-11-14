@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2 - 2026-11-14
+
+### Fixes
+
+- After you cancel a task that is waiting for a lane that is not running, `pots status` now says the cancel is recorded and the task will not run, instead of still showing "queued, session not running".
+
 ## v1.0.1 - 2026-11-14
 
 ### Fixes
