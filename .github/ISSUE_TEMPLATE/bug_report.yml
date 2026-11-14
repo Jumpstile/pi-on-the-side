@@ -1,0 +1,146 @@
+name: Bug report
+description: Tell us what went wrong so we can reproduce and fix it
+title: "[Bug]: "
+labels:
+  - "type:bug"
+  - "status:needs-review"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem.
+
+        Please search existing issues first. Include exact text where you can,
+        and remove private information before pasting or attaching anything.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Problem summary
+      description: In one short sentence, what went wrong?
+      placeholder: Example - pots upgrade stops with an error halfway through
+    validations:
+      required: true
+
+  - type: input
+    id: pots-version
+    attributes:
+      label: Pi on the Side version
+      description: Run `pots --version` in a terminal and paste what it prints.
+      placeholder: Example - 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Your computer
+      description: Windows edition and build, which Claude app you use (desktop app, Claude Code, or other), and which Pi/OMP version you have installed, if you know it.
+      placeholder: |
+        Windows:
+        Claude app:
+        Pi/OMP version:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-area
+    attributes:
+      label: Affected area
+      description: Pick the closest match. Maintainers use this to add the right label.
+      options:
+        - Install or first-time setup (component:install)
+        - Upgrade or update check (component:upgrade)
+        - Lanes - list, close, or restore (component:lanes)
+        - Coordinator wake-ups (component:wakeups)
+        - Connection to Claude, MCP tools, or adapters (component:connection)
+        - pots status or pots doctor (component:diagnostics)
+        - Documentation (component:docs)
+        - Other or not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: trying-to-do
+    attributes:
+      label: What were you trying to do?
+      description: Describe what you were doing just before the problem.
+      placeholder: |
+        I was trying to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed-behavior
+    attributes:
+      label: What happened?
+      description: Describe exactly what you saw. Paste the full error text if there is any. If there was none, write "No error text".
+      placeholder: |
+        Exact error text or what you saw:
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: What did you expect to happen?
+      placeholder: |
+        I expected...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, with the exact commands you typed.
+      placeholder: |
+        1. Run...
+        2. Then...
+        3. See...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Does it happen every time?
+      options:
+        - Every time
+        - Most times
+        - Sometimes
+        - Happened once
+        - Not tested yet
+    validations:
+      required: true
+
+  - type: textarea
+    id: status-output
+    attributes:
+      label: Output of pots status --details
+      description: Run `pots status --details` and paste the result. If it will not run, say so. Remove anything private first (see the checklist below).
+      render: text
+
+  - type: textarea
+    id: recent-changes
+    attributes:
+      label: Recent changes
+      description: Did anything change before this started, such as an upgrade, a Windows update, a moved folder, or a new Pi/OMP version? If not, write "None known".
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround (if you found one)
+      description: Anything that gets you going again, even temporarily.
+
+  - type: checkboxes
+    id: pre-submit-checklist
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I included my Pi on the Side version.
+          required: true
+        - label: I removed passwords, tokens, personal folder names, and anything else private from what I pasted.
+          required: true
