@@ -825,7 +825,7 @@ test('a plan running on the old version is not broken by the upgrade; the next s
   assert.deepEqual(JSON.parse(next.stdout).map(row => [row.id, row.state]), [[planA, 'completed']]);
   await fs.writeFile(path.join(f.base, 'plan-b.json'), planFile(planB));
   const queued = await run(['enqueue', path.join(f.state, 'config.json'), path.join(f.base, 'plan-b.json')], { OMP_BRIDGE_CONTROLLER: credential });
-  assert.equal(queued.code, 0, queued.stderr); assert.doesNotMatch(queued.stdout, /old-version-marker/, 'the next plan is accepted by the new version');
+  assert.equal(queued.code, 3, queued.stderr); assert.doesNotMatch(queued.stdout, /old-version-marker/, 'the next plan is accepted by the new version');
   assert.deepEqual(JSON.parse((await run(['status', f.state])).stdout).map(row => row.id).sort(), [planA, planB].sort());
 });
 

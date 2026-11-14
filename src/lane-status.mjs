@@ -84,6 +84,16 @@ export async function requireModelProven(store) {
   if (hold) fail('model switch not verified; task not sent');
 }
 
+// A lane is running only while its supervisor lock names a live process. A task queued for a lane that is not running waits until the lane is restored.
+export async function laneSessionRunning(store) {
+  let lock;
+  try { lock = await readJson(path.join(store.config.root, 'supervisor-' + store.config.sessionId + '.lock')); } catch { return false; }
+  if (!Number.isSafeInteger(lock?.pid) || lock.pid < 1) return false;
+  try { process.kill(lock.pid, 0); return true; } catch (error) { return error.code === 'EPERM'; }
+}
+export const NOT_RUNNING_NOTE = 'queued, session not running';
+export const NOT_RUNNING_WARNING = 'Warning: this lane\'s session is not running, so nothing will pick this task up yet. Next: restore the lane with pots lane restore (the task waits for it), or cancel the task with pots cancel if you no longer want it.';
+
 // Start a lane task: switch to the requested model (retrying a switch OMP reports as not matching),
 // send the task only after OMP proves it, then confirm the task was stored. Every failure leaves a `start_failed` lane row, except the queue's
 // own refusals (full, text not accepted): those are the reason itself and nothing was lost. `enqueue` stores the task and returns its plan id.
@@ -195,7 +205,7 @@ async function laneSummary({ store, lockFile }, connection) {
   const eventId = needsAttention && UUID.test(store.config.sessionId) && facts.length
     ? crypto.createHash('sha256').update(JSON.stringify([1, store.config.sessionId, facts])).digest('hex') : null;
   return { connection, lane: store.config.sessionId, status, lastEventTime: lastEvent?.time ?? null,
-    lastPlanId, lastPlanState, queuedCount,
+    lastPlanId, lastPlanState, queuedCount, ...(queuedCount > 0 && !await laneSessionRunning(store) ? { queuedNote: NOT_RUNNING_NOTE } : {}),
     needsAttention, eventId, model, ...(stopped ? { stopped: true, next: connection === 'default' ? 'Stopped: a task was running and no bridge is running it any more. Next: this lane is not a named connection, so run pots install, then pots status to see its name.' : `Stopped: a task was running and no bridge is running it any more. Next: run pots lane restore ${connection} to continue it.` } : {}), ...(unreadable.length ? { unreadable } : {}) };
 }
 // The one event id of a lane whose files cannot be read. The watchdog forgets it once the lane reads normally, so a later failure wakes the coordinator again.

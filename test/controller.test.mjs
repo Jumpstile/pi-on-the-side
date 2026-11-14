@@ -91,7 +91,7 @@ test('CLI and MCP share ownership; identical MCP IDs retry once; handoff fences 
   assert.equal((await b('bridge_enqueue', { ...args, prompt: 'different' })).error, 'plan id already used for different content');
   assert.equal((await b('bridge_cancel', { id: waiting.id })).cancelRequested, true, 'the new controller can cancel a task that is still running');
   assert.equal((await b('bridge_cancel', { id: args.id })).error, 'That task already ended, so there is nothing to cancel.');
-  assert.equal((await cli(['queue', f.root, 'new bounded synthetic'], f.b)).code, 0);
+  assert.equal((await cli(['queue', f.root, 'new bounded synthetic'], f.b)).code, 3);
 });
 
 test('different named sessions admit independent controllers; read-only registry remains shared', async t => {

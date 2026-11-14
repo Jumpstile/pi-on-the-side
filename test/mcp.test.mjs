@@ -194,7 +194,7 @@ test('bridge_lanes_status reports bounded lane state and queue attention without
   const { eventId, ...lane } = report.lanes[0];
   assert.equal(eventId, null);
   assert.deepEqual(lane, { connection: 'default', status: 'busy', lastEventTime: NOW - 1000,
-    lastPlanId: PLAN, lastPlanState: 'busy', queuedCount: 1, needsAttention: false,
+    lastPlanId: PLAN, lastPlanState: 'busy', queuedCount: 1, queuedNote: 'queued, session not running', needsAttention: false,
     model: { actual: null, requested: null, state: null, holdingPlans: false } });
   assert.equal(JSON.stringify(report).includes(SECRET), false);
   assert.equal(JSON.stringify(report).includes(sessionId), false, 'the assistant is never given the OMP session id');

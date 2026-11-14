@@ -170,7 +170,7 @@ test('PATH lookup returns only an absolute OMP file and ignores relative entries
 test('rerunning a matching complete setup is idempotent and changes nothing', async t => {
   const f = await fixture(t);
   assert.equal((await f.call(['setup', f.session, f.state])).code, 0);
-  assert.equal((await f.call(['queue', f.state, 'Synthetic fixture prompt.'])).code, 0);
+  assert.equal((await f.call(['queue', f.state, 'Synthetic fixture prompt.'])).code, 3);
   const before = await snapshot(f.state);
   const again = await f.call(['setup', f.session, f.state]);
   assert.equal(again.code, 0, again.err);
@@ -278,7 +278,7 @@ test('start refuses an existing lock, changed session or unsupported host withou
   refused(await f.call(['start', f.state, '--confirm-offline']), LOCKED);
   assert.equal(await fs.readFile(lock, 'utf8'), '{}');
   // Queue/status still work while a supervisor holds the lock.
-  assert.equal((await f.call(['queue', f.state, 'Synthetic fixture prompt.'])).code, 0);
+  assert.equal((await f.call(['queue', f.state, 'Synthetic fixture prompt.'])).code, 3);
   await fs.rm(lock);
 
   refused(await f.call(['start', f.state, '--confirm-offline'], { detect: async () => null }), HOST);
@@ -315,7 +315,7 @@ test('queue creates one fresh finite 24-hour plan; status and cancel use the set
   const prompt = 'Inspect the synthetic fixture and report findings.';
   const first = await f.call(['queue', f.state, prompt]);
   const second = await f.call(['queue', f.state, prompt]);
-  assert.equal(first.code, 0, first.err);
+  assert.equal(first.code, 3, first.err);
   const id = first.out.trim();
   assert.match(id, /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/);
   assert.notEqual(second.out.trim(), id);
@@ -358,7 +358,7 @@ test('the README daily path runs end to end against a disposable fixture', async
   for (const args of commands) {
     const actual = args.map(token => token === '<plan-id>' ? id : map[token] ?? token);
     const result = await f.call(actual);
-    assert.equal(result.code, 0, `${args[0]}: ${result.err}`);
+    assert.equal(result.code, args[0] === 'queue' ? 3 : 0, `${args[0]}: ${result.err}`);
     if (args[0] === 'queue') id = result.out.trim();
     if (args[0] === 'status') assert.equal(JSON.parse(result.out)[0].state, 'queued');
   }
@@ -377,7 +377,7 @@ test('a full queue makes room from finished tasks, keeps their receipts, and 128
   // A cancelled task ends once OMP reaches it: its receipt then says so, and its plan is no longer needed.
   await store.save({ version: 1, id: ids[0], sessionId, state: 'aborted', reason: 'cancelled_before_submission', nextStep: 0, updatedAt: NOW, outcomes: [], taskSuccess: 'unverified', automaticReplay: false });
   const queued = await f.call(['queue', f.state, 'one more']);
-  assert.equal(queued.code, 0, queued.err);
+  assert.equal(queued.code, 3, queued.err);
   assert.equal(await fs.stat(path.join(f.state, 'plans', ids[0] + '.json')).then(() => 'there', e => e.code), 'ENOENT');
   assert.equal((await store.receipt(ids[0])).state, 'aborted', 'the record of how it ended stays');
   assert.equal((await store.ids()).length, 128);
@@ -391,7 +391,7 @@ test('a leftover temporary file in the plans folder does not take a place in the
   for (let n = 0; n < 127; n++) await store.enqueue({ version: 1, id: crypto.randomUUID(), sessionId, expiresAt: NOW + 60000, steps: [{ prompt: 'x', continueAfterEnd: false }] });
   await fs.writeFile(path.join(f.state, 'plans', `${crypto.randomUUID()}.json.${crypto.randomUUID()}.tmp`), '');
   const queued = await f.call(['queue', f.state, 'one more']);
-  assert.equal(queued.code, 0, queued.err);
+  assert.equal(queued.code, 3, queued.err);
   assert.equal((await store.ids()).length, 128);
 });
 
@@ -402,10 +402,36 @@ test('pots enqueue says in plain words that a plan id was already used', async t
   const write = async id => fs.writeFile(file, JSON.stringify({ version: 1, id, sessionId, expiresAt: NOW + 60000, steps: [{ prompt: 'x', continueAfterEnd: false }] }));
   const queued = crypto.randomUUID(), ended = crypto.randomUUID();
   await write(queued);
-  assert.equal((await f.call(['enqueue', config, file])).code, 0);
+  assert.equal((await f.call(['enqueue', config, file])).code, 3);
   refused(await f.call(['enqueue', config, file]), 'plan id already used');
   // A task that ended and whose plan was retired still has its receipt: the id stays spent.
   await store.save({ version: 1, id: ended, sessionId, state: 'completed', nextStep: 1, updatedAt: NOW, outcomes: [], taskSuccess: 'unverified', automaticReplay: false });
   await write(ended);
   refused(await f.call(['enqueue', config, file]), 'plan id already used');
+});
+
+test('a task queued for a lane whose session is not running is queued with a warning, exit code 3 and a not-running status', async t => {
+  const f = await fixture(t);
+  await f.call(['setup', f.session, f.state]);
+  const queued = await f.call(['queue', f.state, 'Synthetic fixture prompt.']);
+  assert.equal(queued.code, 3, queued.err);
+  const id = queued.out.trim(), warning = queued.err.trim();
+  assert.match(id, /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/);
+  assert.match(warning, /^Warning: this lane's session is not running/);
+  const rows = JSON.parse((await f.call(['status', f.state])).out);
+  assert.deepEqual(rows.map(row => [row.id, row.state, row.note]), [[id, 'queued', 'queued, session not running']]);
+  // A lock whose process is gone is not a running session either.
+  await fs.writeFile(path.join(f.state, `supervisor-${sessionId}.lock`), JSON.stringify({ version: 1, pid: 2 ** 22 + 12345, sessionId }));
+  assert.equal((await f.call(['queue', f.state, 'Another prompt.'])).code, 3);
+});
+
+test('a task queued for a lane whose session is running gets no warning and the usual exit code', async t => {
+  const f = await fixture(t);
+  await f.call(['setup', f.session, f.state]);
+  await fs.writeFile(path.join(f.state, `supervisor-${sessionId}.lock`), JSON.stringify({ version: 1, pid: process.pid, sessionId }));
+  const queued = await f.call(['queue', f.state, 'Synthetic fixture prompt.']);
+  assert.equal(queued.code, 0, queued.err);
+  assert.equal(queued.err, '');
+  const rows = JSON.parse((await f.call(['status', f.state])).out);
+  assert.deepEqual(rows.map(row => [row.state, row.note]), [['queued', undefined]]);
 });

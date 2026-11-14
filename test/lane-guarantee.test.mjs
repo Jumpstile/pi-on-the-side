@@ -211,7 +211,7 @@ test('model switch that works after some failures sends the task once and queuei
   assert.equal(bridge.seen, 3);
   assert.deepEqual(await f.plans(), [report.planId + '.json']);
   assert.equal((await f.events()).some(row => row.event === 'start_failed'), false);
-  assert.equal((await f.run(['queue', f.state, 'next task'])).code, 0);
+  assert.equal((await f.run(['queue', f.state, 'next task'])).code, 3);
 });
 
 test('a name OMP refuses is not retried, and an invalid name is refused before anything is asked', async t => {
@@ -236,7 +236,7 @@ test('a plain /model command that OMP does not prove holds tasks until a later v
   assert.equal(early.code, 1); assert.match(early.err, /model switch not verified; task not sent/);
   bridge.works = () => true;
   assert.equal((await f.run(['model', f.state, 'writer/big-1'])).code, 0);
-  assert.equal((await f.run(['queue', f.state, 'now fine'])).code, 0);
+  assert.equal((await f.run(['queue', f.state, 'now fine'])).code, 3);
 });
 
 test('a damaged model receipt fails closed, and a later verified switch still clears it', async t => {
@@ -251,7 +251,7 @@ test('a damaged model receipt fails closed, and a later verified switch still cl
   assert.deepEqual(await f.plans(), []);
   await new Promise(resolve => setTimeout(resolve, 20)); // the damaged file is older than the next receipt
   assert.equal((await f.run(['model', f.state, 'writer/big-1'])).code, 0);
-  assert.equal((await f.run(['queue', f.state, 'open again'])).code, 0);
+  assert.equal((await f.run(['queue', f.state, 'open again'])).code, 3);
 });
 
 test('bridge_enqueue with a model queues only after OMP proves it, never twice, and refuses a bad model name', async t => {

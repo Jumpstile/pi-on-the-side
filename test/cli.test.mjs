@@ -105,8 +105,8 @@ test('queue, status and cancel work on a setup folder through the real CLI witho
   const commandCancel = JSON.parse((await runWith(env, 'command-cancel', f.state, commandId)).output);
   assert.deepEqual(commandCancel, { id: commandId, state: 'cancelled', cancelled: true });
   const queued = await runWith(env, 'queue', f.state, 'Synthetic fixture prompt with spaces.');
-  assert.equal(queued.code, 0, queued.output);
-  const id = queued.output.trim();
+  assert.equal(queued.code, 3, queued.output);
+  const id = queued.output.trim().split('\n')[0].trim();
   const status = JSON.parse((await run('status', f.state)).output);
   assert.deepEqual(status.map(row => [row.id, row.state, row.taskSuccess]), [[id, 'queued', 'unverified']]);
   const cancel = await runWith(env, 'cancel', f.state, id);

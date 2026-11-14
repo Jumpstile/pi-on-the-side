@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { config, initialize, isStaleLock, readJson, Store, plain, unlinkRetry, QUEUE_LIMIT_MS } from './control.mjs';
-import { LANE_ERRORS, lanesStatus, requireModelProven, startLaneTask, switchModel, unstartedPlans, UNSTARTED_TEXT } from './lane-status.mjs';
+import { LANE_ERRORS, laneSessionRunning, lanesStatus, NOT_RUNNING_NOTE, NOT_RUNNING_WARNING, requireModelProven, startLaneTask, switchModel, unstartedPlans, UNSTARTED_TEXT } from './lane-status.mjs';
 import { validateSavedSession } from './transcript.mjs';
 import { detectHost } from './host.mjs';
 import { CANCEL_NOTE, CHECKOUT, diagnostic, exists, FIXED, loadSetup, locateOmp, MESSAGES, nodeSupported, OWNER_ONLY,
@@ -539,7 +539,12 @@ async function dispatch(argv, deps) {
       // One fresh ID, one prompt, 24 hours (the longest a plan may wait), no continuation: finite by construction.
       const enqueue = () => withController(store, deps.controllerFile, () => store.enqueue({ version: 1, id: crypto.randomUUID(), sessionId: store.config.sessionId,
         expiresAt: deps.now() + QUEUE_LIMIT_MS, steps: [{ prompt, continueAfterEnd: false }] })).catch(e => { throw e?.constructor === Error && Object.hasOwn(QUEUE_REFUSED, e.message) ? new Error(QUEUE_REFUSED[e.message]) : e; });
-      if (!laneTask && !queueModel) { await requireModelProven(store); deps.stdout(await enqueue()); return 0; }
+      if (!laneTask && !queueModel) {
+        await requireModelProven(store); deps.stdout(await enqueue());
+        // Queued, but no running session will take it: say so, with a different exit code (3) from a plain success.
+        if (!await laneSessionRunning(store)) { deps.stderr(NOT_RUNNING_WARNING); return 3; }
+        return 0;
+      }
       // With a model the task is queued only after OMP has proven the switch (retried up to modelTries times);
       // any other outcome queues nothing.
       const started = await startLaneTask({ store, model: laneTask ? rest[0] : rest[2], enqueue, controllerFile: deps.controllerFile,
@@ -557,7 +562,8 @@ async function dispatch(argv, deps) {
       arity(0);
       const store = await storeFor(target, deps.now);
       const rows = [];
-      for (const id of await store.ids()) rows.push(await store.receipt(id) ?? { id, state: 'queued', taskSuccess: 'unverified' });
+      const up = await laneSessionRunning(store);
+      for (const id of await store.ids()) rows.push(await store.receipt(id) ?? { id, state: 'queued', taskSuccess: 'unverified', ...(up ? {} : { note: NOT_RUNNING_NOTE }) });
       deps.stdout(JSON.stringify(rows, null, 2));
       return 0;
     }
@@ -585,6 +591,7 @@ async function dispatch(argv, deps) {
       await store.ready();
       const input = await readJson(path.resolve(rest[0]));
       deps.stdout(await withController(store, deps.controllerFile, () => store.enqueue(input)));
+      if (!await laneSessionRunning(store)) { deps.stderr(NOT_RUNNING_WARNING); return 3; }
       return 0;
     }
     case 'launch-plan': {

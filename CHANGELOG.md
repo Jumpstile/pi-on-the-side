@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.1 - 2026-11-14
+
+### Fixes
+
+- Queuing a task for a lane whose session is not running no longer looks like a success. The task is still queued, but you now get a plain warning, the command exits with code 3, and `pots status` and the lane status show "queued, session not running" instead of a bare "queued". Restore the lane to continue, or cancel the task.
+
+
 ## v1.0.0 - 2026-11-14
 
 The first full release. It is the 0.2.25 test build plus the changes below.
