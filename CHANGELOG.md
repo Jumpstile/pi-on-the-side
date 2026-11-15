@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.3 - 2026-11-15
+
+- Pi on the Side can now be listed in the Oh My Pi package catalog. Nothing changes in how it works or installs for you.
+
 ## v1.0.2 - 2026-11-14
 
 ### Fixes

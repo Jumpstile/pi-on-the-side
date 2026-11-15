@@ -1,6 +1,12 @@
 {
   "name": "omp-session-bridge",
-  "version": "1.0.2",
+  "version": "1.0.3",
+  "description": "Pi on the Side: lets your assistants hand work to Oh My Pi sessions on your PCs and watch it finish.",
+  "keywords": ["omp-package", "omp-extension", "oh-my-pi", "omp", "bridge", "sessions"],
+  "homepage": "https://github.com/Jumpstile/pi-on-the-side#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/Jumpstile/pi-on-the-side.git" },
+  "bugs": { "url": "https://github.com/Jumpstile/pi-on-the-side/issues" },
+  "omp": { "extensions": ["./extension/bridge.ts"] },
   "private": true,
   "license": "MIT",
   "type": "module",
