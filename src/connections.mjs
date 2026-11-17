@@ -7,6 +7,7 @@ export const NAME=/^[a-z][a-z0-9-]{0,31}$/;
 const NOT_EMPTY='That connections folder already holds other files, so nothing was changed. Next: choose a new or empty folder for the connections, then run the command again.';
 export const CONNECTION_ERRORS=['invalid connections registry','duplicate connection name or session','unknown connection','explicit connection required','connections changed; restart the adapter','connections registration busy',NOT_EMPTY];
 export const MAX_CONNECTIONS=64;
+export const BAD_LANE_NAME='Lane names can only use lowercase letters, digits and hyphens, must start with a letter, and can be at most 32 characters (for example guide-trim-b-review). Next: choose a name like that and run the command again. Nothing was changed.';
 // When the list is full, finished lanes are taken off it (oldest first) down to this many, then the new lane is added.
 export const KEEP_CONNECTIONS=48;
 // A lane that is not running is only taken off automatically after this long with no change in its files.
@@ -112,7 +113,7 @@ async function publish(root,old,next,write,removing){
  }
 }
 export async function registerConnection(rootArg,name,stateArg,{write=writeJson}={}){
- if(typeof name!=='string'||!NAME.test(name))fail('invalid connections registry');
+ if(typeof name!=='string'||!NAME.test(name))throw say(BAD_LANE_NAME);
  const root=path.resolve(rootArg),state=path.resolve(stateArg),loaded=await loadSetup(state,Date.now);
  if(inside(root,CHECKOUT)||inside(root,loaded.settings.cwd)||inside(root,state))fail('invalid connections registry');
  if(!await exists(root)){await plain(path.dirname(root),true);try{await fs.mkdir(root,{mode:0o700});}catch(e){if(e.code!=='EEXIST')throw e;}}

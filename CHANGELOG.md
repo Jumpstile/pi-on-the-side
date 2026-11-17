@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.5 - 2026-11-16
+
+- Choosing a lane name that is not allowed now says what the rules are (lowercase letters, digits and hyphens, starting with a letter, up to 32 characters). Before, it reported a damaged lane list, which was misleading.
+
 ## v1.0.4 - 2026-11-16
 
 - If Pi on the Side is installed twice (the normal install and the Oh My Pi catalog copy), only one copy runs in a session. The extra copy stays off and says so, and the normal install always wins.

@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "omp-session-bridge",
   "display_name": "Pi on the Side!",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Pi on the Side! lets your AI assistant control multiple OMP sessions through a local connection.",
   "long_description": "Pi on the Side! lets your AI assistant control multiple Oh My Pi (OMP) sessions through a reliable local connection. `pots install` connects your saved projects by itself, up to 64 at once (projects connected earlier keep their places), and one local assistant can send an approved task. Check progress and what the bridge recorded; cancel future bridge work before OMP accepts it; use named connections for multiple projects; pause new dispatch; review uncertain outcomes without automatic replay. Limited local status and diagnostic notes can help troubleshoot; review notes before sharing. Notes exclude prompts and credentials and do not prove task success. Connecting a project is not readiness: the assistant can send work only to a project opened through its Pi on the Side launcher. Managed updates verify packages and keep rollback; Windows removal is recoverable by default, with permanent deletion requiring a second confirmation. Queued work may continue through a temporary assistant-connection interruption only while OMP and its provider remain available. Receipts are observations, not proof of success. No network listener or provider-quota bypass. Designed to work across OMP versions; compatibility problems are bugs to fix, though not every past or future release has been tested.",
   "author": {
