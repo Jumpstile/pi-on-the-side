@@ -108,7 +108,7 @@ async function publish(root,old,next,write,removing){
   if(JSON.stringify(await readConnections(root,{tries:1}))!==JSON.stringify(next))fail('invalid connections registry');
  }catch{
   try{if(old)await writeJson(file,old);else await fs.unlink(file).catch(()=>{});}
-  catch{throw say('The lane list could not be saved safely, and the old list could not be put back automatically. A copy of the old list is in connections.json.bak1 in the connections folder; copy it over connections.json.');}
+  catch{throw say('The lane list could not be saved safely, and the old list could not be put back automatically. '+(removing?'A copy of the old list is in connections.json.bak1 in the connections folder; copy it over connections.json.':'Run pots install to connect your saved sessions again.'));}
   throw say('The lane list could not be saved safely, so Pi on the Side put the old list back. No lane or saved session was changed. Try again; if it keeps happening, send this message to support.');
  }
 }

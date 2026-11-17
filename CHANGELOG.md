@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.7 - 2026-11-16
+
+- If the lane list cannot be saved and the old list cannot be put back automatically, the message now names the backup copy only when one was made. Before, it always pointed to a backup that exists only after a lane is removed, so it could send you to a missing or older file. When a lane was being added, it now says to run pots install instead.
+
 ## v1.0.6 - 2026-11-16
 
 - When you uninstall and one of your own assistant settings files (Claude Desktop or Codex) still has a Pi on the Side entry, it now says to open the file and remove only that entry. Before, it said to delete the whole file, which would have erased your other settings.
