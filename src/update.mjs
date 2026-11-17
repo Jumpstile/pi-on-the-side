@@ -45,6 +45,8 @@ function declaredFiles(data) {
 }
 const NODE_FLOOR = 22;
 const POINTER = 'current.json', LAUNCHER_FILE = 'bridge.mjs', VERSIONS = 'versions', STAGING = 'staging', BUSY = 'activate.lock';
+// A cut-off write leaves `<name>.<id>.tmp`; it is harmless and must not stop an update or an update check. Install (prepareManagedRuntime) stays strict: it moves such a folder aside and rebuilds it.
+const STRAY_TMP = /^[A-Za-z0-9._-]+\.[0-9a-f-]{36}\.tmp$/;
 const RECORD = 'release.json';
 const ROOT_ENTRIES = [LAUNCHER_FILE, POINTER, STAGING, VERSIONS].sort().join('/');
 
@@ -304,10 +306,10 @@ function compatible(data, version, gate = true) {
   if (!node || Number(node[1]) > NODE_FLOOR) halt('incompatible');
 }
 
-async function loadInstall(root) {
+async function loadInstall(root, stray = false) {
   try {
     await plain(root, true);
-    if ((await fs.readdir(root)).filter(name => name !== BUSY).sort().join('/') !== ROOT_ENTRIES) fail('entries');
+    if ((await fs.readdir(root)).filter(name => name !== BUSY && !(stray && STRAY_TMP.test(name))).sort().join('/') !== ROOT_ENTRIES) fail('entries');
     await plain(path.join(root, VERSIONS), true);
     await plain(path.join(root, STAGING), true);
     await plain(path.join(root, LAUNCHER_FILE));
@@ -428,7 +430,7 @@ async function swap(file, intended, io, keep) {
 
 async function activate(install, next, { io, prepare }) {
   return boundary(install.root, async keep => {
-    const fresh = await loadInstall(install.root);
+    const fresh = await loadInstall(install.root, true);
     if (JSON.stringify(fresh.pointer) !== JSON.stringify(install.pointer)) halt('deferred', { reason: REASONS.changed });
     if (prepare) await prepare();
     await verifyVersion(install.root, next);
@@ -439,7 +441,7 @@ async function activate(install, next, { io, prepare }) {
 
 async function managedTarget(managed, stateFolder, now) {
   if (!managed) fail(MESSAGES.source);
-  const install = await loadInstall(path.resolve(managed));
+  const install = await loadInstall(path.resolve(managed), true);
   // `pots upgrade` has no project in mind: without a state folder only the install itself is checked.
   if (stateFolder !== undefined) {
     const setup = await loadSetup(path.resolve(stateFolder), now);
@@ -457,7 +459,7 @@ async function insideStateFolder(target) {
 }
 
 export async function checkUpdate({ gh, managed, prerelease }) {
-  const current = managed ? (await loadInstall(path.resolve(managed))).pointer.current
+  const current = managed ? (await loadInstall(path.resolve(managed), true)).pointer.current
     : (await readJson(path.join(CHECKOUT, 'package.json'))).version;
   return settle(current, async () => {
     const { status, latest } = await select(gh, current, prerelease);

@@ -103,16 +103,16 @@ export async function plain(file, directory = false) {
   return stat;
 }
 
-export async function readJson(file) {
+export async function readJson(file, max = MAX_BYTES) {
   const stat = await plain(file);
-  if (stat.size > MAX_BYTES) fail('file too large');
+  if (stat.size > max) fail('file too large');
   const handle = await fs.open(file, 'r');
   try {
     const opened = await handle.stat();
     if (opened.ino !== stat.ino || opened.dev !== stat.dev) fail('file changed');
-    const bytes = Buffer.alloc(MAX_BYTES + 1);
+    const bytes = Buffer.alloc(max + 1);
     const { bytesRead } = await handle.read(bytes, 0, bytes.length, 0);
-    if (bytesRead > MAX_BYTES) fail('file too large');
+    if (bytesRead > max) fail('file too large');
     return JSON.parse(bytes.subarray(0, bytesRead).toString('utf8'));
   } finally { await handle.close(); }
 }
@@ -120,9 +120,9 @@ export async function readJson(file) {
 // Same-volume replacement gives readers a complete old or new JSON record.
 // fsync precedes rename. Directory-fsync availability differs on Windows;
 // this is crash recovery, not a promise against storage-controller power loss.
-export async function writeJson(file, value, exclusive = false, io = fs) {
+export async function writeJson(file, value, exclusive = false, io = fs, max = MAX_BYTES) {
   const bytes = JSON.stringify(value) + '\n';
-  if (Buffer.byteLength(bytes) > MAX_BYTES) fail('record too large');
+  if (Buffer.byteLength(bytes) > max) fail('record too large');
   await plain(path.dirname(file), true);
   const tmp = file + '.' + crypto.randomUUID() + '.tmp';
   const handle = await io.open(tmp, 'wx', 0o600);

@@ -107,9 +107,11 @@ async function backup(ctx, name, record) {
 
 // Order: backup record of our previous part, folders, atomic replace, and only
 // then the undo record (so undo only ever reverses writes that happened).
-async function changeFile(ctx, name, file, record, bytes, action) {
+async function changeFile(ctx, name, file, record, bytes, action, unchanged) {
   await backup(ctx, name, { file, ...record });
   await ensureDir(ctx, path.dirname(file));
+  // The file may be changed by its owner after it was read: look again right before the write and write nothing if it did.
+  if (unchanged && !await unchanged()) throw new Error('changed while Setup was working');
   await atomicWrite(file, bytes);
   ctx.actions.push({ ...action, file });
 }
@@ -514,7 +516,7 @@ async function readDesktop(file) {
   const bytes = await readBytes(file);
   const { value } = bytes === null ? { value: {} } : parseJson(bytes);
   if (value.mcpServers !== undefined && !isObject(value.mcpServers)) throw new Error('mcpServers invalid');
-  return { existed: bytes !== null, value, entry: value.mcpServers?.[SERVER_NAME] };
+  return { existed: bytes !== null, bytes, value, entry: value.mcpServers?.[SERVER_NAME] };
 }
 const desktopText = value => Buffer.from(JSON.stringify(value, null, 2) + '\n');
 
@@ -529,7 +531,8 @@ async function configureClaudeDesktop(ctx, director) {
   try {
     await changeFile(ctx, 'claude-desktop-connection', file, { existed: current.existed, previous },
       desktopText({ ...current.value, mcpServers: { ...current.value.mcpServers, [SERVER_NAME]: desired } }),
-      { type: 'desktop', existed: current.existed, previous, added: desired });
+      { type: 'desktop', existed: current.existed, previous, added: desired },
+      async () => { const now = await readBytes(file); return now === null ? current.bytes === null : current.bytes !== null && now.equals(current.bytes); });
   } catch { return failedItem(ctx, CD, 'connection', file); }
   ctx.owned.push({ kind: 'claude-desktop', file });
   registered(ctx, CD, previous ? 'updated' : 'configured', director, file);

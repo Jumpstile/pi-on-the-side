@@ -11,7 +11,7 @@ import { CHECKOUT, diagnostic, discardUnstarted, exists, loadSetup, nodeSupporte
 import { createCredential, acquireController, CONTROLLER_ERRORS } from './controller.mjs';
 import { detectHost } from './host.mjs';
 import { windowsProcesses } from './live.mjs';
-import { NAME, MAX_CONNECTIONS, CONNECTION_ERRORS, readConnections, registerConnection, loadConnection, dropUnavailableConnections } from './connections.mjs';
+import { NAME, MAX_CONNECTIONS, CONNECTION_ERRORS, readConnections, registerConnection, closeConnection, loadConnection, dropUnavailableConnections } from './connections.mjs';
 import { compareVersions, isOurLauncher, prepareManagedRuntime, startCheck, UPGRADE_ERRORS, MESSAGES as UPDATE_MESSAGES } from './update.mjs';
 import { configureAssistants, windowsTasks } from './clients.mjs';
 import { resumeOptions, installCoordinatorResume, autoResumeOptions, applyResumeTask, logProblem, selfTest, wakeupsOffFile, wakeupsOnFile, WAKEUPS_ON_AGAIN, WAKEUPS_FORGOTTEN } from './coordinator-resume-setup.mjs';
@@ -533,7 +533,10 @@ async function bindSession({ root, credentialFile, connectionsFolder, executable
   if (prior) { if (prior.name !== name || !same(prior.root, state)) fail('existing connection differs; no binding replaced'); await loadConnection(prior); }
   const added = prior ? undefined : await registerConnection(connectionsFolder, name, state);
   const launcherFolder = path.join(root, 'launchers', name), launchSettings = { node, cli, state };
-  const launcherPlan = await planLauncher(launcherFolder, launchSettings, LAUNCH_SCRIPT, root, state);
+  let launcherPlan;
+  try { launcherPlan = await planLauncher(launcherFolder, launchSettings, LAUNCH_SCRIPT, root, state); }
+  // A lane whose launcher cannot be planned must not stay on the list as a row nobody can start: take only its row off again.
+  catch (e) { if (added) await closeConnection(connectionsFolder, name).catch(() => {}); throw e; }
   const quote = value => "'" + value.replaceAll("'", "''") + "'";
   return { bound, launcherFolder, launcherPlan, retired: added?.retiredFinishedLanes ?? [],
     row: { name, project: selected.cwd, sessionId: selected.sessionId, stateFolder: state, created: bound.created, controller, launcher: path.join(launcherFolder, 'Start-OMP.ps1'),

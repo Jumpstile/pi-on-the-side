@@ -9,6 +9,18 @@ import { readConnections, loadConnections, MAX_CONNECTIONS } from './connections
 import { lanesStatus, unreadableEventId } from './lane-status.mjs';
 import { coordinatorHeartbeatFresh } from './coordinator-heartbeat.mjs';
 
+// Windows refuses to rename onto a file another program has open (EPERM, EACCES, EBUSY) until it is closed: retry briefly.
+async function renameRetry(from, to) {
+  const deadline = Date.now() + 2000;
+  for (;;) {
+    try { return await fs.rename(from, to); }
+    catch (e) {
+      if (process.platform !== 'win32' || !['EPERM', 'EACCES', 'EBUSY'].includes(e.code) || Date.now() >= deadline) throw e;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+  }
+}
+
 export const RESUME_LIMITS = Object.freeze({ pollMs: 2000, minPollMs: 1000, maxPollMs: 15000, globalCooldownMs: 120000,
   laneCooldownMs: 300000, windowMs: 3600000, globalPerHour: 6, lanePerHour: 3, logRecords: 128, eventRecords: 512 });
 const fail = () => { throw new Error('coordinator resume safety check failed'); };
@@ -302,7 +314,7 @@ export async function createResumeWatchdog(configFile, dependencies = {}) {
     // attacker-controlled error messages, paths, prompts, or CLI output.
     // Written to a temporary file and renamed, so a crash leaves the old complete log, never a cut-off one.
     await fs.writeFile(logFile + '.tmp', text, { mode: 0o600 });
-    await fs.rename(logFile + '.tmp', logFile);
+    await renameRetry(logFile + '.tmp', logFile);
     return { action, reason, ...(client ? { client } : {}), laneCount };
   }
   async function tick() {

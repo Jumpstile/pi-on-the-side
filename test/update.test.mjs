@@ -828,3 +828,12 @@ test('an install lock kept after a failed pointer restore is marked even after a
   assert.match(lasting.result.json.note, /could not be marked as unsafe to remove.*Look at current\.json yourself/);
   assert.ok(await exists(path.join(lasting.w.root, 'activate.lock')), 'the lock file itself is still kept');
 });
+
+test('an update check still works when a cut-off write left a temp file in the install folder', async t => {
+  const w = await installed(t);
+  await fs.writeFile(path.join(w.root, 'current.json.' + crypto.randomUUID() + '.tmp'), '{"half');
+  const result = await w.call(['update', 'check'], { ...w.managed, gh: w.feed().gh });
+  assert.equal(result.code, 0, result.out + result.err);
+  assert.equal(result.json.status, 'update-available');
+  assert.equal(result.json.latest, '0.2.0');
+});

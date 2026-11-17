@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.8 - 2026-11-17
+
+- Install and upgrade no longer stop with "record too large" on a PC with many lanes and many kept program versions. The list of installed files can now grow to 1 MiB (it was cut off at 64 KiB), and `pots status` reads it the same way.
+- If the last lane on the list is dropped, commands now say that no lanes are connected and to run `pots install`. Before, they said the lane list was invalid.
+- If Setup cannot prepare the launcher for a lane, that lane is taken off the list again instead of staying as a row nobody can start.
+- An update check or update is no longer refused because of a harmless leftover temp file in the install folder.
+- The wake-up log is now written reliably even when another program has the file open for a moment.
+- Setup no longer overwrites a change made to Claude Desktop's settings file while Setup was working. It stops for that item, and running `pots install` again starts from the new contents.
+- On a Node older than 22, `pots` and the Claude connection now print one plain sentence instead of a stack trace.
+- Two documentation pages that disagreed about whether the Claude connection was tested now say the same thing.
+
 ## v1.0.7 - 2026-11-16
 
 - If the lane list cannot be saved and the old list cannot be put back automatically, the message now names the backup copy only when one was made. Before, it always pointed to a backup that exists only after a lane is removed, so it could send you to a missing or older file. When a lane was being added, it now says to run pots install instead.

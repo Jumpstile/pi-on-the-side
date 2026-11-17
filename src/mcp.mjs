@@ -15,7 +15,7 @@ import { readNewWatchLines, WATCH_ERRORS } from './lane-watch.mjs';
 // here listens on a network or starts OMP. A local controller capability file
 // is read only at the write boundary; it is never exposed as a tool argument.
 const PROTOCOL_VERSION = '2025-06-18';
-const SERVER_INFO = Object.freeze({ name: 'omp-session-bridge', version: '1.0.7' });
+const SERVER_INFO = Object.freeze({ name: 'omp-session-bridge', version: '1.0.8' });
 const MAX_FRAME = 64 * 1024;
 const MAX_PENDING = 16;
 const MAX_RETAINED = MAX_PENDING * MAX_FRAME;

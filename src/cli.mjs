@@ -123,7 +123,7 @@ async function status(flags, deps) {
   const agent = deps.env.PI_CODING_AGENT_DIR || path.join(deps.home, '.omp/agent');
   // Every saved session in the default folders that install would connect (a project folder inside the install folder is never connected), plus every connection (a session saved elsewhere, e.g. with --session-dir, is still counted).
   const found = new Set([...(await discoverSessions([path.join(agent, 'sessions'), path.join(agent, 'custom-session-files')]).catch(() => [])).filter(row => !inside(root, row.cwd)).map(row => row.sessionId), ...connected.map(row => row.binding.sessionId)]).size;
-  const record = await readJson(path.join(root, 'uninstall-record.json')).catch(() => ({}));
+  const record = await readJson(path.join(root, 'uninstall-record.json'), 1048576).catch(() => ({}));
   const NAMES = { 'claude-desktop': 'Claude Desktop', codex: 'Codex', 'claude-skill': 'Claude skill' };
   const assistants = [...(record.claudeCode ? ['Claude Code'] : []), ...(record.assistants ?? []).filter(row => NAMES[row.kind]).map(row => NAMES[row.kind])];
   const open = await (deps.openSessions?.() ?? 0).catch(() => 0);

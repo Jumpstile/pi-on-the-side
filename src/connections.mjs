@@ -31,7 +31,7 @@ async function readOnce(root){
  await plain(root,true);
  const names=await fs.readdir(root),busy=names.length===0||names.some(n=>n==='connections.lock'||TMP.test(n));
  if(names.some(n=>n!=='connections.json'&&n!=='connections.lock'&&!TMP.test(n)&&!BAK.test(n)))fail('invalid connections registry');
- if(!names.includes('connections.json')){if(busy)return {busy};fail('invalid connections registry');}
+ if(!names.includes('connections.json')){if(busy)return {busy};if(names.length&&names.every(n=>BAK.test(n)))throw say('No lanes are connected on this PC. Next: run pots install to connect your saved OMP sessions.');fail('invalid connections registry');}
  try{return {value:await readJson(path.join(root,'connections.json'))};}
  catch(e){if(!transient(e))throw e;return {busy};}
 }

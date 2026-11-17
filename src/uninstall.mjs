@@ -17,7 +17,7 @@ export const REVIEW='private permissions require local review';
 export const reviewText=command=>`${command} stopped because a file or folder in the install folder is not private to you, or it is a link, and it does not follow links. Next: if you made a link inside the install folder, delete the link itself (not the folder it points to), then run ${command} again. If you did not, send the Details to support.\nDetails: ${REVIEW}`;
 export const UNINSTALL_ERRORS=["uninstall refused: linked or foreign path","uninstall refused: invalid installation root","uninstall refused: oversized ownership record","uninstall refused: inventory limit","private permission setup failed",REVIEW,"private recovery verification failed; moved files retained for local recovery","uninstall refused: host entry remains","uninstall refused: native host removal failed","uninstall refused: installation ownership missing","uninstall refused: host registration ownership unavailable","uninstall refused: foreign registry entry","uninstall refused: unverified install file","uninstall registration failed; setup retained, rerun setup to repair","uninstall refused: invalid release ownership",BROKEN_RUNTIME,"uninstall requires Windows","uninstall refused: process ownership unavailable","uninstall refused: unverified recovery archive",DAMAGED,"uninstall usage: <installation-root> [--all] [--confirm-offline] [--purge --confirm-purge]"];
 const MARKER={version:1,type:'omp-session-bridge-local'};
-const RECORD='uninstall-record.json', HELPER='uninstall.mjs', HELPER_FILES=[HELPER,'clients.mjs','control.mjs'];
+const RECORD='uninstall-record.json', RECORD_MAX=1048576, HELPER='uninstall.mjs', HELPER_FILES=[HELPER,'clients.mjs','control.mjs'];
 // A helper copy whose bytes equal this build's own file is one Setup could have written (an earlier run that failed after copying it).
 const ownHelper=async name=>hash(await fs.readFile(path.join(path.dirname(fileURLToPath(import.meta.url)),name)));
 const uuid='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -169,7 +169,7 @@ export async function trackClaudeCode(root,exe,integration=claudeIntegration()){
  // A settings file that cannot be read now means this one registration cannot be verified: it is not recorded, and setup goes on.
  let entry;try{entry=await integration.read();}catch{return {tracked:false,host:'Claude Code',scope:'user'};}
  if(!ownsEntry(entry,record,root))throw Error('uninstall refused: host registration ownership unavailable');
- record.claudeCode={exe};await writeJson(path.join(root,RECORD),record);return {tracked:true,host:'Claude Code',scope:'user'};
+ record.claudeCode={exe};await writeJson(path.join(root,RECORD),record,false,undefined,RECORD_MAX);return {tracked:true,host:'Claude Code',scope:'user'};
 }
 
 // Registrations the installer made in the assistant apps outside its own folder (Claude Desktop config entry, a
@@ -180,7 +180,7 @@ export async function trackAssistants(root,rows){
  await rootPath(root);const record=await json(path.join(root,RECORD));if(record.root!==root||record.id!==installationId(root)||record.type!=='pi-on-the-side-uninstall')throw Error('uninstall refused: installation ownership missing');
  if(!Array.isArray(rows)||rows.length>6||rows.some(r=>!r||!ASSISTANT_KINDS.includes(r.kind)||typeof r.file!=='string'||!path.isAbsolute(r.file)||(['claude-skill','pots-command'].includes(r.kind)&&!/^[0-9a-f]{64}$/.test(r.sha256))||(r.kind==='codex'&&r.sha256!==undefined&&!/^[0-9a-f]{64}$/.test(r.sha256))))throw Error('uninstall refused: host registration ownership unavailable');
  const kept=new Map((Array.isArray(record.assistants)?record.assistants:[]).filter(r=>r&&ASSISTANT_KINDS.includes(r.kind)).map(r=>[r.kind,r]));for(const r of rows)kept.set(r.kind,r.sha256?{kind:r.kind,file:r.file,sha256:r.sha256}:{kind:r.kind,file:r.file});record.assistants=[...kept.values()];
- await writeJson(path.join(root,RECORD),record);return {tracked:rows.length};
+ await writeJson(path.join(root,RECORD),record,false,undefined,RECORD_MAX);return {tracked:rows.length};
 }
 const OWN_BEGIN='# BEGIN Pi on the Side (omp-session-bridge)',OWN_END='# END Pi on the Side (omp-session-bridge)';
 async function removeAssistants(root,rows,removed={}){
@@ -245,7 +245,7 @@ export async function registerInstallation(root,{nodeExecutable=process.execPath
  const scan=await inventory(root),manifest=await runtimeManifest(root,scan),software={};for(const f of scan.files){if(f.path===RECORD||f.path==='setup.lock'||f.path==='local-setup.json'||dataPattern.test(f.path)||unproven.has(f.path))continue;if(HELPER_FILES.includes(f.path)||managedInstructions.get(f.path)===f.sha256||(f.path.startsWith('runtime/')&&softwareLocation(f.path)&&(runtimeMeta(f.path)||manifest.get(f.path)===f.sha256))||/^launchers\/[a-z][a-z0-9-]{0,63}\/(Start-OMP\.ps1|launch-settings\.json)$/.test(f.path))software[f.path]=f.sha256;/* Any other file is not claimed: uninstall will list it and leave it. */}
  const command=`"${nodeExecutable}" "${path.join(root,HELPER)}" "${root}" --all --ui`;
  const oldRecord=existing;const record={version:1,type:'pi-on-the-side-uninstall',root,id,nodeExecutable,command,software,resumeExternal,...(oldRecord?.claudeCode?{claudeCode:oldRecord.claudeCode}:{}),...(oldRecord?.assistants?{assistants:oldRecord.assistants}:{})};
- await writeJson(path.join(root,RECORD),record);
+ await writeJson(path.join(root,RECORD),record,false,undefined,RECORD_MAX);
  const pkg=await json(path.join(path.dirname(fileURLToPath(import.meta.url)),'../package.json'));
  try{await registry.write(id,{DisplayName:'Pi on the Side!',DisplayVersion:pkg.version,Publisher:'Jumpstile',InstallLocation:root,UninstallString:command,PiOwnedRoot:root});}catch(e){throw Error('uninstall registration failed; setup retained, rerun setup to repair');}
  }catch(e){const left=[];for(const [name,bytes] of before){const file=path.join(root,name);try{if(bytes)await fs.writeFile(file,bytes,{mode:0o600});else await fs.rm(file,{force:true});}catch{left.push(name);}}if(left.length)e.left=left;throw e;}
