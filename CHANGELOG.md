@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.4 - 2026-11-16
+
+- If Pi on the Side is installed twice (the normal install and the Oh My Pi catalog copy), only one copy runs in a session. The extra copy stays off and says so, and the normal install always wins.
+
 ## v1.0.3 - 2026-11-15
 
 - Pi on the Side can now be listed in the Oh My Pi package catalog. Nothing changes in how it works or installs for you.

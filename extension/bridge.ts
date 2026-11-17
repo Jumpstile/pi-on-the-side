@@ -2,7 +2,9 @@ import { COMMAND_HOLD_MS, config, isModelSelector, proveModel, readJson, same, S
 import type { ExtensionAPI, ExtensionContext } from '@mariozechner/pi-coding-agent';
 import { validateSavedSession, fence, reconcileAdmission, captureNativeAdmission, invokeNativeAdmission,
   observeNativeAdmission, reconcileNativeAdmission, commitNativeAdmission, nativeAssistantStamp, nativeCompactionEnd } from '../src/transcript.mjs';
-import { detectHost, terminalSignal, isOmpVersion } from '../src/host.mjs';
+import { detectHost, terminalSignal, isOmpVersion, COPY_CLAIM, copyShouldStayOff, isCatalogCopy } from '../src/host.mjs';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 
@@ -314,6 +316,9 @@ async function processCommand(store: Store, pi: ExtensionAPI, ctx: ExtensionCont
 }
 export default createBridge(detectHost);
 
+const SELF_FILE = fileURLToPath(import.meta.url);
+const copyClaim = globalThis as unknown as Record<symbol, string | undefined>;
+
 // `detect` is injectable so offline tests can model the supported host without
 // an OMP binary; production always uses detectHost on the running executable.
 // The optional hook is a test-only barrier for deterministic persistence-race fixtures.
@@ -356,7 +361,7 @@ export function createBridge(detect: () => Promise<string | null>, testHooks?: {
   const snapshot = (phase: string) => {
     if (!bound) return Promise.resolve();
     const flag = (read: () => boolean) => { try { const value = read(); return typeof value === 'boolean' ? value : null; } catch { return null; } };
-    const record = { version: 1, bridgeVersion: '1.0.3', pid: process.pid, parentPid: process.ppid,
+    const record = { version: 1, bridgeVersion: '1.0.4', pid: process.pid, parentPid: process.ppid,
       processUptimeMs: processUptimeMs(), observedAt: Date.now(), phase, timerPresent: timer !== undefined, tickCount, lastTickAt,
       lastTickFinishedAt, idle: flag(() => sessionContext.isIdle()),
       pendingMessages: flag(() => sessionContext.hasPendingMessages()),
@@ -702,6 +707,11 @@ export function createBridge(detect: () => Promise<string | null>, testHooks?: {
         if (settings.sessionId !== ctx.sessionManager.getSessionId() || !same(settings.cwd, ctx.cwd)) {
           notify(ctx, 'Saved bridge binding does not match this OMP session.', 'warning'); return;
         }
+        if (copyShouldStayOff({ held: copyClaim[COPY_CLAIM], self: SELF_FILE, catalogCopy: isCatalogCopy(SELF_FILE),
+          fullInstall: Boolean(process.env.LOCALAPPDATA) && existsSync(path.join(process.env.LOCALAPPDATA!, 'OMP Session Bridge Local')) })) {
+          notify(ctx, 'Another copy of Pi on the Side is already set up here, so this copy stays off.', 'info'); return;
+        }
+        copyClaim[COPY_CLAIM] = SELF_FILE;
         bound = settings; trace = new LocalTrace(settings.root); laneEvents = new LaneEvents(settings.root, settings.sessionId);
         trace.record('connection_bound', {sessionMatches:true}); trace.record('session_start', {}); host = await detect().catch(() => null);
         if (!stopFailed) await start(ctx, true);
@@ -1156,6 +1166,7 @@ export function createBridge(detect: () => Promise<string | null>, testHooks?: {
       try { await drained(diagnosticLane); await drained(trace?.flush() ?? Promise.resolve()); await drained(laneEvents?.flush() ?? Promise.resolve()); }
       catch { report(); }
       trace = undefined; laneEvents = undefined;
+      if (copyClaim[COPY_CLAIM] === SELF_FILE) delete copyClaim[COPY_CLAIM];
     };
     pi.on('session_before_switch', retire);
     pi.on('session_shutdown', retire);

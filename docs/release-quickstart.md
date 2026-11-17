@@ -44,4 +44,4 @@ Type `pots` alone to see this list.
 
 - Windows has the tested path. The installer only changes files it made itself.
 - The one program path never changes between versions: `<install folder>\runtime\current\bridge.mjs`. The `pots` command is a one-line `pots.cmd` in the WindowsApps folder that runs it.
-- More help: [troubleshooting](https://github.com/Jumpstile/pi-on-the-side/blob/v1.0.3/docs/windows-setup.md#troubleshooting).
+- More help: [troubleshooting](https://github.com/Jumpstile/pi-on-the-side/blob/v1.0.4/docs/windows-setup.md#troubleshooting).

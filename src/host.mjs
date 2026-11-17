@@ -25,6 +25,14 @@ export function detectHost(executable = process.execPath, timeout = 2000) {
   });
 }
 
+// Two copies of the extension can load into one OMP process: the full install's own copy and a copy from the
+// OMP package catalog. Only one may run a bridge. The first copy to start claims the process; a catalog copy
+// also stays off whenever the full install is on this PC, so the full install always wins.
+export const COPY_CLAIM = Symbol.for('omp-session-bridge.claim');
+export const isCatalogCopy = file => /[\\/]node_modules[\\/]/i.test(String(file));
+export const copyShouldStayOff = ({ held, self, catalogCopy, fullInstall }) =>
+  (catalogCopy === true && fullInstall === true) || (typeof held === 'string' && held !== self);
+
 // Maps an agent_end payload to Supervisor.ended's willContinue argument. One rule for every OMP version:
 // an omitted field means the run finished (false), an explicit true means OMP continues, an explicit false
 // means finished, and any other value is malformed (undefined; the plan then ends `malformed`).
