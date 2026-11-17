@@ -236,6 +236,22 @@ test('uninstall does not claim the pots command was removed when it was kept bec
   assert.equal(await fs.readFile(shim, 'utf8'), '@echo my own pots\r\n', 'the file the person edited is left alone');
 });
 
+test('uninstall keeps your own assistant settings file and says to remove only the Pi on the Side entry, never to delete the file', async t => {
+  const w = await world(t, 1), root = path.dirname(path.dirname(w.managed));
+  const settings = path.join(w.base, 'claude_desktop_config.json');
+  const original = JSON.stringify({ mcpServers: { 'omp-session-bridge': { command: 'node.exe', args: [path.join(w.base, 'Other Install', 'bridge.mjs')] }, 'my-other-tool': { command: 'tool.exe' } } });
+  await fs.writeFile(settings, original);
+  const recordFile = path.join(root, 'uninstall-record.json'), record = JSON.parse(await fs.readFile(recordFile, 'utf8'));
+  record.assistants = [...(record.assistants ?? []).filter(row => row.kind !== 'claude-desktop'), { kind: 'claude-desktop', file: settings }];
+  await fs.writeFile(recordFile, JSON.stringify(record));
+  const result = await w.pots(['uninstall']);
+  assert.equal(result.code, 0, result.out + result.err);
+  assert.ok(/^Pi on the Side was removed/.test(result.out) && result.out.includes(settings), result.out);
+  assert.match(result.out, /remove only that entry/); assert.match(result.out, /Do not delete the file/);
+  assert.doesNotMatch(result.out, /Delete them yourself/); assert.doesNotMatch(result.out, /Nothing else to do/);
+  assert.equal(await fs.readFile(settings, 'utf8'), original, 'the settings file is left exactly as it was');
+});
+
 test('uninstall does not claim the pots command was removed when Setup never recorded one, and leaves that file alone', async t => {
   const w = await world(t, 1), shim = path.join(w.apps, 'pots.cmd'), root = path.dirname(path.dirname(w.managed));
   const recordFile = path.join(root, 'uninstall-record.json'), record = JSON.parse(await fs.readFile(recordFile, 'utf8'));

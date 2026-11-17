@@ -367,6 +367,25 @@ test('restart recovery skips a damaged command receipt instead of stopping, and 
   assert.equal((await store.modelHold()) !== null, true); // the damaged one still holds
 });
 
+test('a model switch that was interrupted after it was admitted still holds queued plans after restart recovery', async t => {
+  const base = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pots-model-recover-hold-')));
+  t.after(() => fs.rm(base, { recursive: true, force: true }));
+  const cwd = path.join(base, 'work'); await fs.mkdir(cwd);
+  const root = path.join(base, 'state'); await initialize(root);
+  const store = new Store({ sessionId, cwd, root });
+  const admitted = crypto.randomUUID();
+  await store.requestCommand(admitted, '/model fixture-b/model-gamma-large'); await store.updateCommandReceipt(admitted, 'dispatching', 'admitted');
+  await store.recoverCommands();
+  const receipt = await store.commandReceipt(admitted);
+  assert.equal(receipt.state, 'failed'); assert.equal(receipt.requested, 'fixture-b/model-gamma-large');
+  assert.deepEqual(await store.modelHold(), { id: admitted, requested: 'fixture-b/model-gamma-large', state: 'failed' });
+  // A later switch that OMP confirms ends the hold.
+  const later = crypto.randomUUID();
+  await store.requestCommand(later, '/model fixture-b/model-gamma-large'); await store.updateCommandReceipt(later, 'dispatching', 'admitted');
+  await store.updateCommandReceipt(later, 'verified', 'verified', { requested: 'fixture-b/model-gamma-large', resolved: 'fixture-b/model-gamma-large', actual: 'fixture-b/model-gamma-large' });
+  assert.equal(await store.modelHold(), null);
+});
+
 test('if OMP cannot list its models the request ends in a plain error instead of staying queued', async t => {
   const h = await lane(t, { listError: true });
   const row = await h.ask('/model gamma');

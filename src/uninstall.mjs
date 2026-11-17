@@ -184,29 +184,29 @@ export async function trackAssistants(root,rows){
 }
 const OWN_BEGIN='# BEGIN Pi on the Side (omp-session-bridge)',OWN_END='# END Pi on the Side (omp-session-bridge)';
 async function removeAssistants(root,rows,removed={}){
- const preserved=[];if(!Array.isArray(rows)||rows.length>6)throw Error('uninstall refused: unverified install file');
+ const preserved=[],settings=[];const keep=row=>(['claude-desktop','codex'].includes(row.kind)?settings:preserved).push(row.file);if(!Array.isArray(rows)||rows.length>6)throw Error('uninstall refused: unverified install file');
  for(const row of rows){
   if(!row||!ASSISTANT_KINDS.includes(row.kind)||typeof row.file!=='string'||!path.isAbsolute(row.file))throw Error('uninstall refused: unverified install file');
   if(await absent(row.file))continue;
   try{
    await plain(row.file);const bytes=await fs.readFile(row.file);
-   if(row.kind==='pots-command'){if(hash(bytes)===row.sha256){await fs.unlink(row.file);removed.command=true;}else preserved.push(row.file);}
-   else if(row.kind==='claude-skill'){if(hash(bytes)===row.sha256){await fs.unlink(row.file);await fs.rmdir(path.dirname(row.file)).catch(()=>{});}else preserved.push(row.file);}
+   if(row.kind==='pots-command'){if(hash(bytes)===row.sha256){await fs.unlink(row.file);removed.command=true;}else keep(row);}
+   else if(row.kind==='claude-skill'){if(hash(bytes)===row.sha256){await fs.unlink(row.file);await fs.rmdir(path.dirname(row.file)).catch(()=>{});}else keep(row);}
    else if(row.kind==='claude-desktop'){
     const value=JSON.parse(bytes.toString('utf8')),entry=value?.mcpServers?.['omp-session-bridge'];
-    if(!entry)continue;if(!referencesRoot(entry,root)){preserved.push(row.file);continue;}
+    if(!entry)continue;if(!referencesRoot(entry,root)){keep(row);continue;}
     delete value.mcpServers['omp-session-bridge'];const temp=row.file+'.'+crypto.randomBytes(4).toString('hex')+'.tmp';await fs.writeFile(temp,JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});await fs.rename(temp,row.file);
    }else{
     const text=bytes.toString('utf8'),eol=text.includes('\r\n')?'\r\n':'\n',lines=text.split(/\r?\n/);
     const begin=lines.map((l,i)=>l.startsWith(OWN_BEGIN)?i:-1).filter(i=>i>=0),end=lines.map((l,i)=>l.startsWith(OWN_END)?i:-1).filter(i=>i>=0);
     if(!begin.length&&!end.length)continue;
-    if(begin.length!==1||end.length!==1||end[0]<begin[0]||!referencesRoot(lines.slice(begin[0],end[0]+1).join('\n').replace(/\\\\/g,'\\'),root)||(row.sha256&&hash(lines.slice(begin[0],end[0]+1).join('\n'))!==row.sha256)){preserved.push(row.file);continue;}
+    if(begin.length!==1||end.length!==1||end[0]<begin[0]||!referencesRoot(lines.slice(begin[0],end[0]+1).join('\n').replace(/\\\\/g,'\\'),root)||(row.sha256&&hash(lines.slice(begin[0],end[0]+1).join('\n'))!==row.sha256)){keep(row);continue;}
     const from=begin[0]>0&&lines[begin[0]-1]===''?begin[0]-1:begin[0];lines.splice(from,end[0]-from+1);
     const temp=row.file+'.'+crypto.randomBytes(4).toString('hex')+'.tmp';await fs.writeFile(temp,lines.join(eol),{flag:'wx',mode:0o600});await fs.rename(temp,row.file);
    }
-  }catch{preserved.push(row.file);}
+  }catch{keep(row);}
  }
- return preserved;
+ return {files:preserved,settings};
 }
 
 
@@ -340,7 +340,7 @@ async function uninstallInstallation(root,options={},deps=uninstallDefaults){
  let handoffKept;if(options.purge)try{handoffKept=await keepHandoff(root,deps.recoveryOrigin??root);}catch{return {status:'blocked',reason:'handoff-not-copied',root,note:`The handoff file could not be copied next to the install folder, so nothing was removed from ${root}. Next: make sure you can save files in the folder that holds the install folder, then run pots uninstall again.`};}
  // The permission checks come first and the scheduled task goes only after every check has passed, so a blocked uninstall never costs the person their wake-ups.
  // A refusal keeps its own reason (and the recovery folder when files were already moved) instead of reading as "something is using them".
-let recovery,preservedExternal=[],programGone=false,linkRemoved=false,taskGone=false;const removed={};
+let recovery,preservedExternal=[],preservedSettings=[],programGone=false,linkRemoved=false,taskGone=false;const removed={};
 // Only a real "in use" error reads as something using the files; a Windows helper that did not finish, a failed host removal or any other error says what happened (the cause is kept for --details).
 const IN_USE=new Set(['EBUSY','EPERM','EACCES','ENOTEMPTY']);
 const stopped=e=>({status:'incomplete',root,reason:e.recovery?'recovery-kept':e.message===REVIEW?'permissions-review':IN_USE.has(e.code)?'locked-or-removal-failed':'removal-failed',registryRetained:true,recovery:e.recovery,wakeupsOff:taskGone,
@@ -351,11 +351,11 @@ try{await deps.permissions.verify(root);await deps.permissions.verifyTree(root);
  // root was resolved, ancestor/reparse-checked, ownership-qualified and fully
  // re-inventoried above. Recover by same-volume rename, preserving its DACL,
  // then verify the private destination before removing the app registration.
- try{if(final.record.claudeCode&&!final.hostUnverified&&await deps.integration.read())programGone=(await deps.integration.remove(final.record.claudeCode.exe))?.gone===true;preservedExternal=[...await removeResumeExternal(root,final.record.resumeExternal||[]),...await removeAssistants(root,final.record.assistants||[],removed)];if(options.purge)await fs.rm(root,{recursive:true,force:false});else recovery=await deps.recover(root,deps.permissions);}catch(e){return stopped(e);}
- if(!await absent(root))return {status:'incomplete',root,reason:'files-remain',registryRetained:true,recovery,wakeupsOff:taskGone,preservedExternal};
+ try{if(final.record.claudeCode&&!final.hostUnverified&&await deps.integration.read())programGone=(await deps.integration.remove(final.record.claudeCode.exe))?.gone===true;{const wake=await removeResumeExternal(root,final.record.resumeExternal||[]),apps=await removeAssistants(root,final.record.assistants||[],removed);preservedExternal=[...wake,...apps.files];preservedSettings=apps.settings;}if(options.purge)await fs.rm(root,{recursive:true,force:false});else recovery=await deps.recover(root,deps.permissions);}catch(e){return stopped(e);}
+ if(!await absent(root))return {status:'incomplete',root,reason:'files-remain',registryRetained:true,recovery,wakeupsOff:taskGone,preservedExternal,preservedSettings};
 try{await deps.registry.remove(preview.id);if(await deps.registry.read(preview.id))return {status:'incomplete',root,reason:'registry-remains',recovery,wakeupsOff:taskGone};}catch{return {status:'incomplete',root,reason:'registry-removal-failed',recovery,wakeupsOff:taskGone};}
  const commandRemoved=removed.command===true; // only what this uninstall really deleted: a command the person had already deleted is not claimed
- return {status:'uninstalled',root,activeFilesRemaining:0,registryPresent:false,preservedExternal,commandRemoved,claudeCodeKept:final.hostUnverified||programGone,claudeCodeGone:programGone,recovery:options.purge?'none: permanent purge confirmed':recovery,handoffKept,linkRemoved,scope:'Recorded installation only; modified external resume launchers are preserved. Unrecorded downloads, manual copies and host-installed adapters are not claimed removed.'};
+ return {status:'uninstalled',root,activeFilesRemaining:0,registryPresent:false,preservedExternal,preservedSettings,commandRemoved,claudeCodeKept:final.hostUnverified||programGone,claudeCodeGone:programGone,recovery:options.purge?'none: permanent purge confirmed':recovery,handoffKept,linkRemoved,scope:'Recorded installation only; modified external resume launchers are preserved. Unrecorded downloads, manual copies and host-installed adapters are not claimed removed.'};
 }
 // Recovery folders are considered only for a confirmed permanent purge. Each
 // archive must retain the selected installation's marker, original root and

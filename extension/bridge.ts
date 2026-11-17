@@ -361,7 +361,7 @@ export function createBridge(detect: () => Promise<string | null>, testHooks?: {
   const snapshot = (phase: string) => {
     if (!bound) return Promise.resolve();
     const flag = (read: () => boolean) => { try { const value = read(); return typeof value === 'boolean' ? value : null; } catch { return null; } };
-    const record = { version: 1, bridgeVersion: '1.0.5', pid: process.pid, parentPid: process.ppid,
+    const record = { version: 1, bridgeVersion: '1.0.6', pid: process.pid, parentPid: process.ppid,
       processUptimeMs: processUptimeMs(), observedAt: Date.now(), phase, timerPresent: timer !== undefined, tickCount, lastTickAt,
       lastTickFinishedAt, idle: flag(() => sessionContext.isIdle()),
       pendingMessages: flag(() => sessionContext.hasPendingMessages()),

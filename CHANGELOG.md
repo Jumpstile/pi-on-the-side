@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.6 - 2026-11-16
+
+- When you uninstall and one of your own assistant settings files (Claude Desktop or Codex) still has a Pi on the Side entry, it now says to open the file and remove only that entry. Before, it said to delete the whole file, which would have erased your other settings.
+- If Oh My Pi restarts while a model switch is in progress, queued tasks now wait until a later model switch is confirmed. Before, the next task could start on a model you did not choose.
+- Fixed places where the documentation did not match what Pi on the Side really does: the queue limit, the record size limit, the setup file keys, an error message name, the tester checklist, and two out-of-date examples.
+
 ## v1.0.5 - 2026-11-16
 
 - Choosing a lane name that is not allowed now says what the rules are (lowercase letters, digits and hyphens, starting with a letter, up to 32 characters). Before, it reported a damaged lane list, which was misleading.

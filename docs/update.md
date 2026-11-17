@@ -58,7 +58,7 @@ Setup keeps **one** managed install, shared by every connected project, at `<ins
 
 ```
 runtime/current/bridge.mjs            fixed launcher, written once
-runtime/current/current.json          {"version":1,"current":"0.2.1","previous":"0.2.0"}
+runtime/current/current.json          {"version":1,"current":"1.0.6","previous":"1.0.5"}
 runtime/current/versions/<version>/   read-only files plus release.json (digest and per-file SHA-256)
 runtime/current/staging/              private temporary folders
 ```

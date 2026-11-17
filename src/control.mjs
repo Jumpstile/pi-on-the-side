@@ -413,7 +413,12 @@ export class Store {
     for (const id of await this.commandIds()) {
       let receipt;
       try { receipt = await this.commandReceipt(id); } catch { continue; } // an unreadable receipt keeps its hold (modelHold); it must not stop the others
-      if (receipt?.state === 'dispatching') await this.updateCommandReceipt(id, 'failed', 'adapter restarted after dispatch admission');
+      if (receipt?.state === 'dispatching') {
+        // Keep which model was asked for, so an interrupted switch still holds queued plans until a later switch is proven (see modelHold).
+        let asked;
+        try { asked = /^\/model(?:\s+(\S+))?\s*$/.exec((await this.commandRequest(id)).command)?.[1]; } catch { asked = undefined; }
+        await this.updateCommandReceipt(id, 'failed', 'adapter restarted after dispatch admission', isModelSelector(asked) ? { requested: asked } : {});
+      }
     }
   }
 }
