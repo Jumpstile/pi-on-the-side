@@ -4,9 +4,9 @@ Pi on the Side! lets your AI assistant control multiple OMP sessions through a l
 
 Features include connecting saved projects, keeping named connections separate, checking progress and receipts, cancelling future bridge work, pausing or resuming new dispatch, reviewing uncertain outcomes without automatic replay, verified updates with rollback, and recoverable removal. Queued work may continue through a temporary assistant-connection interruption only while OMP and its provider remain available; receipts are observations, not proof of success.
 
-Use the **v1.0.8 release**. Confirm its tag commit and the update bundle and MCPB checksums against the digests GitHub shows for that release's files before testing. The withdrawn v0.2.0 draft is not an accepted install. This checklist does not authorize outreach or model invocation by itself.
+Use the **v1.0.9 release**. Confirm its tag commit and the update bundle and MCPB checksums against the digests GitHub shows for that release's files before testing. The withdrawn v0.2.0 draft is not an accepted install. This checklist does not authorize outreach or model invocation by itself.
 
-1. Confirm the candidate checksum. Follow [Start here](https://github.com/Jumpstile/pi-on-the-side/blob/v1.0.8/docs/release-quickstart.md) on
+1. Confirm the candidate checksum. Follow [Start here](https://github.com/Jumpstile/pi-on-the-side/blob/v1.0.9/docs/release-quickstart.md) on
    a disposable local project. Setup connects every saved session it finds, so
    use a disposable account or sessions. Keep one directing assistant. Keep
    existing owner workflows and models untouched.

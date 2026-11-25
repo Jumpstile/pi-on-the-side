@@ -47,6 +47,35 @@ const USAGE = COMMANDS + '\n\n' +
   'Lane watcher (reads local files only): watch-lines <connections-or-state-folder> [--peek] prints only the lane lines not shown before | watch-state <connections-or-state-folder> prints each lane\'s latest state';
 export const ALLOWED = new Set([...UNINSTALL_ERRORS, ...FIXED, ...CONNECTION_ERRORS, ...CONTROLLER_ERRORS, ...LANE_ERRORS, ...AUTO_ERRORS, ...WATCH_ERRORS, ...Object.values(UPDATE_MESSAGES), USAGE]);
 const EXTENSION = path.join(CHECKOUT, 'extension', 'bridge.ts');
+// Extra OMP extensions the owner chose (for example a memory hook). They are listed in one small file in OMP's own
+// agent folder, not in Setup's folder, so uninstall never meets a file it did not record. Nothing here can stop a
+// lane from starting: a file that is missing, unreadable or listed wrongly is skipped with a plain note.
+const EXTRA_LIST = 'omp-session-bridge-extensions.json';
+const EXTRA_MAX = 8;
+export async function extraExtensions(deps) {
+  const listFile = path.join(deps.env?.PI_CODING_AGENT_DIR || path.join(deps.home, '.omp/agent'), EXTRA_LIST), files = [], notes = [];
+  let list;
+  try { list = await readJson(listFile); }
+  catch (error) {
+    if (error?.code !== 'ENOENT') notes.push(`The list of extra OMP extensions (${listFile}) could not be read, so this lane starts without them. Next: fix that file or delete it.`);
+    return { files, notes };
+  }
+  if (!Array.isArray(list?.extensions)) {
+    notes.push(`The list of extra OMP extensions (${listFile}) must look like {"extensions": ["full path of the extension file"]}, so this lane starts without them. Next: fix that file or delete it.`);
+    return { files, notes };
+  }
+  const seen = new Set([EXTENSION.toLowerCase()]);
+  for (const entry of list.extensions) {
+    if (files.length >= EXTRA_MAX) { notes.push(`Only the first ${EXTRA_MAX} extra extensions are used.`); break; }
+    if (typeof entry !== 'string' || !path.isAbsolute(entry)) { notes.push(`An entry in ${listFile} is not the full path of a file, so it was left out. Next: use the full path.`); continue; }
+    const file = path.resolve(entry);
+    if (seen.has(file.toLowerCase())) continue;
+    seen.add(file.toLowerCase());
+    if (!await fs.stat(file).then(stat => stat.isFile(), () => false)) { notes.push(`The extra extension ${file} was not found, so it was left out. Next: fix its path in ${listFile}, or remove it from the list.`); continue; }
+    files.push(file);
+  }
+  return { files, notes };
+}
 const NOT_INSTALLED = 'This command works from the installed copy. Install Pi on the Side first (the quickstart has the one line), then use the pots command.';
 const BOTH_WAKEUP_FLAGS = 'Use either --coordinator-wakeups or --no-coordinator-wakeups, not both. Nothing was changed.';
 const OFF_WITH_RESUME = 'Use --no-coordinator-wakeups without the resume options (--resume-cli, --resume-cloud, --handoff-file and the others), or leave it out. Nothing was changed.';
@@ -332,24 +361,29 @@ async function start(target, confirm, deps, { restore = false, limits = [], reli
   const recheck = await checkTarget(root, deps.now);
   if (JSON.stringify([recheck.settings, recheck.launch]) !== JSON.stringify([settings, launch])) throw new Error(MESSAGES.changed);
   // --no-extensions stops automatic discovery from loading a second copy of the
-  // bridge; the one explicit --extension path still loads. No settings change.
-  const args = ['--no-extensions', '--extension', EXTENSION, restore ? '--restore' : '--resume', launch.sessionFile, ...limits];
+  // bridge; the explicit --extension paths still load: the bridge's own first, then any
+  // extra extensions the owner listed (extraExtensions). No settings change.
+  const extra = await extraExtensions(deps).catch(() => ({ files: [], notes: ['The list of extra OMP extensions could not be used, so this lane starts without them.'] }));
+  const args = ['--no-extensions', '--extension', EXTENSION, ...extra.files.flatMap(file => ['--extension', file]), restore ? '--restore' : '--resume', launch.sessionFile, ...limits];
   const environment = { OMP_BRIDGE_CONFIG: current.configFile };
   if (!confirm) {
     deps.stdout(JSON.stringify({ started: false, foreground: true, sessionId: settings.sessionId, sessionFile: launch.sessionFile,
       cwd: settings.cwd, executable: launch.executable, extension: EXTENSION, args, environment, host,
+      ...(extra.files.length || extra.notes.length ? { extraExtensions: extra.files, extraExtensionNotes: extra.notes } : {}),
       providerAuth: PROVIDER_AUTH, ownerOnlyPermissions: OWNER_ONLY,
       offlineOwnership: 'Not checked automatically. Confirm that no OMP window or process is using this saved session, ' +
         'then rerun this command with --confirm-offline to resume it in this terminal.',
       limits: [
         'The bridge lock cannot detect OMP instances started without this bridge or with another state folder.',
-        'Other automatically discovered OMP extensions are not loaded in this run.',
+        'Automatically discovered OMP extensions are not loaded in this run. Only the extra extensions you list in omp-session-bridge-extensions.json (in the OMP agent folder) are added.',
         "Cancel stops future bridge steps only; interrupt active work with OMP's own controls.",
         'A plan that did not complete is never retried; inspect it in OMP. A restart turns in-flight work into failed (reason restart).',
       ], update }, null, 2));
     return 0;
   }
   if (update) deps.stderr(`Update ${update.status}${update.reason ? ` (${update.reason})` : ''}: ${update.note}`);
+  if (extra.files.length) deps.stderr(`Extra OMP extensions added to this lane: ${extra.files.join(', ')}.`);
+  for (const note of extra.notes) deps.stderr(note);
   deps.stderr(restore ? "Continuing the stopped lane in this terminal. Use OMP's own controls to interrupt or exit." : "Starting OMP in this terminal. Use OMP's own controls to interrupt or exit; queue from another terminal.");
   // The lane watcher lives inside this wrapper for exactly as long as OMP runs: no extra process,
   // window or Startup entry. It can never block or fail the launch.

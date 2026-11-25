@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.9 - 2026-11-25
+
+- You can now choose extra OMP extensions, such as a memory hook, to load in every lane. List their files in `omp-session-bridge-extensions.json` in the OMP agent folder. Each one is added after Pi on the Side's own extension, which is never changed. Before, a lane ignored every extension that OMP would normally find by itself. Nothing changes if the file is not there, and a missing or wrongly written entry never stops a lane from starting. See "Adding your own OMP extension to a lane" in `docs/operations.md`.
+
 ## v1.0.8 - 2026-11-17
 
 - Install and upgrade no longer stop with "record too large" on a PC with many lanes and many kept program versions. The list of installed files can now grow to 1 MiB (it was cut off at 64 KiB), and `pots status` reads it the same way.

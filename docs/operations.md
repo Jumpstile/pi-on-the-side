@@ -4,7 +4,7 @@ This page covers detailed checks when a saved OMP session or local bridge setup 
 
 ## Activation and duplicate prevention
 
-Do not stop an active OMP session only to test the bridge. `start "<state-folder>"` without `--confirm-offline` previews the exact launch. Before starting, let `setup` derive and `start` recheck the saved header and exact project folder; verify no OMP process/window is writing that session and check private state permissions. Use `--confirm-offline` only after all writers are safely stopped. The bridge resumes the same saved session in the foreground with `--no-extensions` and one explicit bridge extension, so normal extension discovery does not load a duplicate; discovered extensions are also not loaded for that run. Preserve OMP provider/advisor/escalation settings and do not add the bridge extension to a global discovery root.
+Do not stop an active OMP session only to test the bridge. `start "<state-folder>"` without `--confirm-offline` previews the exact launch. Before starting, let `setup` derive and `start` recheck the saved header and exact project folder; verify no OMP process/window is writing that session and check private state permissions. Use `--confirm-offline` only after all writers are safely stopped. The bridge resumes the same saved session in the foreground with `--no-extensions` and one explicit bridge extension, so normal extension discovery does not load a duplicate; discovered extensions are also not loaded for that run. Extensions you list yourself are added: see "Adding your own OMP extension to a lane" below. Preserve OMP provider/advisor/escalation settings and do not add the bridge extension to a global discovery root.
 
 The internal lock prevents a second bridge supervisor sharing its state root/session; `start` also refuses while the lock exists and never steals it. It cannot detect a separate OMP writer without this extension, a second private state root for the same session, or an opaque process command line. Neither the preview nor the confirmation proves these absent. If process/session ownership is ambiguous, return to the existing owner window and stop. No automatic process killing, keyboard injection, or duplicate session fallback exists.
 
@@ -106,6 +106,18 @@ After a restart or crash, `pots status` and `bridge_lanes_status` say a lane is 
 To limit what a lane may spend, add any of `--warn-cost <dollars>`, `--max-cost <dollars>` and `--max-time <time such as 30m or 2h>` to `start` or to `pots lane restore`. They are passed to OMP as they are; with none given, there is no limit.
 
 This is the one exception to "never steals" and "not automatically authorized" above: `start` itself still refuses any leftover lock. `pots lane restore` removes a leftover lock only when OMP's own `session lease` says no running OMP owns the session (an answer of "unknown" refuses), and the lock names this lane's session and is provably stale (its program is gone or the PC restarted since).
+
+## Adding your own OMP extension to a lane
+
+A lane starts OMP with `--no-extensions`, so OMP does not find a second copy of the bridge by itself. That also means OMP does not load any other extension or hook it would normally find by itself, such as a memory tool's hook in the OMP `hooks\pre` folder. To load one in every lane, list its file in a file named `omp-session-bridge-extensions.json` in the OMP agent folder (`%USERPROFILE%\.omp\agent`, or the folder `PI_CODING_AGENT_DIR` names). Save it as plain UTF-8 text:
+
+```json
+{ "extensions": ["C:\\full\\path\\to\\the-extension.ts"] }
+```
+
+Each file is added with `--extension` after the bridge's own, by `start` and by `pots lane restore`, and the preview (`start` without `--confirm-offline`) shows them. Nothing changes when the file is not there. The list is read when a lane starts, so a lane that is already running keeps what it started with. Delete the file, or take an entry out, to stop adding it.
+
+The list can never stop a lane from starting. An entry that is not a full path, a file that is not there, a repeat, or the bridge's own extension is skipped with a plain note, and so is a list that cannot be read or is written the wrong way. At most 8 are used. If OMP itself cannot load a listed extension, OMP says so and starts without it. The bridge's own extension is always loaded first and is never changed by the list.
 
 ## When the lane list is full
 

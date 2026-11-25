@@ -42,6 +42,8 @@ async function fixture(t, overrides = {}) {
   const executable = path.join(base, 'tools dir', process.platform === 'win32' ? 'omp.exe' : 'omp');
   const probes = [], launches = [];
   const deps = {
+    // An empty home of its own, so an extra-extensions list on the PC running the tests cannot change what these tests see.
+    home: base, env: { ...process.env, PI_CODING_AGENT_DIR: path.join(base, 'agent') },
     locate: async () => executable,
     detect: async file => { probes.push(file); return FIXTURE_HOST; },
     launch: async spec => { launches.push(spec); return 0; },
