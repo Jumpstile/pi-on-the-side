@@ -79,7 +79,7 @@ const psRun=(script,env={},timeout=20000,step='show a Windows window',options={}
 const answer=(step,out)=>{try{return JSON.parse(out);}catch{throw new HelperFailure(`Windows gave an answer Setup could not read when it tried to ${step}.`,`${step}: not valid JSON: ${clip(out)}`,'script');}};
 const registryBase='HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\';
 export function windowsRegistry({exec}={}){const run=(script,env,timeout,step)=>psRun(script,env,timeout,step,{exec});return {
- async read(id){const step='look up this install in Installed apps';return answer(step,await run("$ErrorActionPreference='Stop';$p=$env:PI_UNINSTALL_KEY;if(Test-Path -LiteralPath $p){$v=Get-ItemProperty -LiteralPath $p;@{root=$v.PiOwnedRoot;command=$v.UninstallString}|ConvertTo-Json -Compress}else{'null'}",{PI_UNINSTALL_KEY:registryBase+id},20000,step));},
+ async read(id){const step='look up this install in Installed apps';return answer(step,await run("$ErrorActionPreference='Stop';$p=$env:PI_UNINSTALL_KEY;if(Test-Path -LiteralPath $p){$v=Get-ItemProperty -LiteralPath $p;@{root=$v.PiOwnedRoot;command=$v.UninstallString;name=$v.DisplayName}|ConvertTo-Json -Compress}else{'null'}",{PI_UNINSTALL_KEY:registryBase+id},20000,step));},
  async list(){const step='list the installs in Installed apps';return answer(step,await run("$ErrorActionPreference='Stop';@{roots=@(Get-ChildItem -LiteralPath $env:PI_UNINSTALL_BASE -ErrorAction SilentlyContinue|Where-Object{$_.PSChildName -like 'PiOnTheSide-*'}|ForEach-Object{(Get-ItemProperty -LiteralPath $_.PSPath).PiOwnedRoot})}|ConvertTo-Json -Compress",{PI_UNINSTALL_BASE:registryBase.slice(0,-1)},20000,step)).roots;},
  async write(id,entry){await run("$ErrorActionPreference='Stop';$p=$env:PI_UNINSTALL_KEY;$e=$env:PI_UNINSTALL_ENTRY|ConvertFrom-Json;[void](New-Item -Path $p -Force);foreach($n in @('DisplayName','DisplayVersion','Publisher','InstallLocation','UninstallString','PiOwnedRoot')){[void](New-ItemProperty -LiteralPath $p -Name $n -Value $e.$n -PropertyType String -Force)};foreach($n in @('NoModify','NoRepair')){[void](New-ItemProperty -LiteralPath $p -Name $n -Value 1 -PropertyType DWord -Force)}",{PI_UNINSTALL_KEY:registryBase+id,PI_UNINSTALL_ENTRY:JSON.stringify(entry)},20000,'add this install to Installed apps');},
  async remove(id){await run("$ErrorActionPreference='Stop';if(Test-Path -LiteralPath $env:PI_UNINSTALL_KEY){Remove-Item -LiteralPath $env:PI_UNINSTALL_KEY}",{PI_UNINSTALL_KEY:registryBase+id},20000,'remove an install from Installed apps');}
@@ -249,7 +249,18 @@ export async function registerInstallation(root,{nodeExecutable=process.execPath
  const pkg=await json(path.join(path.dirname(fileURLToPath(import.meta.url)),'../package.json'));
  try{await registry.write(id,{DisplayName:'Pi on the Side!',DisplayVersion:pkg.version,Publisher:'Jumpstile',InstallLocation:root,UninstallString:command,PiOwnedRoot:root});}catch(e){throw Error('uninstall registration failed; setup retained, rerun setup to repair');}
  }catch(e){const left=[];for(const [name,bytes] of before){const file=path.join(root,name);try{if(bytes)await fs.writeFile(file,bytes,{mode:0o600});else await fs.rm(file,{force:true});}catch{left.push(name);}}if(left.length)e.left=left;throw e;}
+ await pruneStale(root,registry);
  return {registered:true,id,root};
+}
+// After this install's own entry is written: removes the Installed-apps entries of Pi on the Side whose install folder is gone (a deleted throwaway folder), so only the real install is listed.
+// Registry keys only, never a file. An entry whose folder still exists, one that is not provably Setup's own (same proof as an orphan in previewUninstall), and anything unreadable are left alone; a failure here never fails the install.
+async function pruneStale(root,registry){
+ if(typeof registry.list!=='function'||typeof registry.remove!=='function')return;/* a list that cannot be read or changed has nothing to clean */
+ try{for(const p of await listedRoots({registry})){
+  try{if(!path.isAbsolute(p)||p!==path.resolve(p)||p===path.parse(p).root||same(p,root)||!await absent(p))continue;
+   const id=installationId(p),entry=await registry.read(id);
+   if(entry&&entry.name==='Pi on the Side!'&&typeof entry.root==='string'&&same(entry.root,p)&&typeof entry.command==='string'&&entry.command.toLowerCase().endsWith(` "${path.join(p,HELPER)}" "${p}" --all --ui`.toLowerCase()))await registry.remove(id);}catch{/* this one entry stays */}
+ }}catch{await fs.appendFile(path.join(root,'pots.log'),new Date().toISOString()+' Old Installed apps entries could not be cleaned up this time.\r\n',{mode:0o600}).catch(()=>{});}
 }
 
 const resumeLocation=p=>/^coordinator-resume\/(config\.json|resume-prompt\.txt|claude-cloud-task\.txt|chatgpt-cloud-task\.txt|Disable-Resume\.cmd|Run-Resume\.vbs|ownership\.json)$/.test(p);

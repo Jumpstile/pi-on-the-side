@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import { main, shownText } from '../src/cli.mjs';
-import { UNINSTALL_ERRORS } from '../src/uninstall.mjs';
+import { UNINSTALL_ERRORS, registerInstallation } from '../src/uninstall.mjs';
 import { CONNECTION_ERRORS } from '../src/connections.mjs';
 import { WATCH_ERRORS } from '../src/lane-watch.mjs';
 import { MESSAGES as UPDATE_MESSAGES, RELEASE_FILES } from '../src/update.mjs';
@@ -28,7 +28,11 @@ async function fixture(t, { saved = 2 } = {}) {
     locate: async () => process.execPath, detect: async () => 'omp/18.8.6', openSessions: async () => 0,
     tasks: undefined, selfTest: undefined, startCheck: async () => {}, which: async () => null,
     permissions: { protect: async () => {}, verify: async () => {}, verifyTree: async () => {} } };
-  return { root, projects, deps };
+  // The Installed-apps list is a fake: a run must never add an entry to the real one on this PC.
+  const rows = new Map(), registry = { read: async id => rows.get(id) ?? null, remove: async id => rows.delete(id), list: async () => [...rows.values()].map(row => row.root),
+    write: async (id, entry) => rows.set(id, { root: entry.PiOwnedRoot, command: entry.UninstallString }) };
+  deps.registry = registry; deps.registerUninstall = (installRoot, options) => registerInstallation(installRoot, { ...options, registry });
+  return { root, projects, deps, rows };
 }
 // The install result with the same sentence and details `pots install` prints. A failure is the text the person would see.
 const install = async (f, over = {}) => {
@@ -56,6 +60,7 @@ async function makeOlder(managed, label) {
 
 test('one command connects every saved session on the PC and the sentence names the next step', async t => {
   const f = await fixture(t), result = await install(f);
+  assert.equal(f.rows.size, 1, 'the run adds exactly one entry, and only to the fake list');
   assert.deepEqual(result.sessions.map(row => row.project).sort(), [...f.projects].sort());
   assert.deepEqual(result.skipped, []);
   assert.ok(result.message.startsWith(`Installed Pi on the Side ${result.upgrade.to}. Next: `), result.message);

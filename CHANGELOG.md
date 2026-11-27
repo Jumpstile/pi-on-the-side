@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.10
+
+- Installed apps now shows only one Pi on the Side entry; upgrading cleans out old leftover entries.
+
 ## v1.0.9 - 2026-11-25
 
 - You can now choose extra OMP extensions, such as a memory hook, to load in every lane. List their files in `omp-session-bridge-extensions.json` in the OMP agent folder. Each one is added after Pi on the Side's own extension, which is never changed. Before, a lane ignored every extension that OMP would normally find by itself. Nothing changes if the file is not there, and a missing or wrongly written entry never stops a lane from starting. See "Adding your own OMP extension to a lane" in `docs/operations.md`.
