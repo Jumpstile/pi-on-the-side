@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/pots-logo-256.png" width="128" alt="Pi on the Side logo"></p>
+
 # Pi on the Side!
 
 Pi on the Side! lets your AI assistant (Claude or ChatGPT) send work to the Oh My Pi (OMP) sessions on your Windows PC, check on it, and tell you when it is finished.

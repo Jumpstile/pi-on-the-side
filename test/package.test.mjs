@@ -17,7 +17,7 @@ const PACK = path.join(CHECKOUT, 'scripts', 'pack-mcpb.mjs');
 const EXPECTED = ['NOTICE.md', 'SECURITY.md', 'bin/mcp.mjs', 'docs/controllers.md', 'docs/desktop.md', 'manifest.json', 'package.json',
   'src/connections.mjs', 'src/control.mjs', 'src/controller.mjs', 'src/coordinator-heartbeat.mjs', 'src/host.mjs', 'src/lane-status.mjs', 'src/lane-watch.mjs', 'src/mcp.mjs', 'src/setup.mjs', 'src/transcript.mjs'];
 // The update bundle: runtime code only. No tests, docs, manifest or scripts.
-const RELEASE = ['NOTICE.md', 'SECURITY.md', 'bin/bridge.mjs', 'bin/coordinator-resume.mjs', 'bin/mcp.mjs', 'extension/bridge.ts', 'package.json', 'src/autosetup.mjs', 'src/cli.mjs', 'src/clients.mjs',
+const RELEASE = ['NOTICE.md', 'SECURITY.md', 'assets/pots.ico', 'bin/bridge.mjs', 'bin/coordinator-resume.mjs', 'bin/mcp.mjs', 'extension/bridge.ts', 'package.json', 'src/autosetup.mjs', 'src/cli.mjs', 'src/clients.mjs',
   'src/connections.mjs', 'src/control.mjs', 'src/controller.mjs', 'src/coordinator-heartbeat.mjs', 'src/coordinator-resume.mjs', 'src/coordinator-resume-setup.mjs', 'src/host.mjs', 'src/lane-status.mjs', 'src/lane-watch.mjs', 'src/live.mjs', 'src/mcp.mjs', 'src/model-setup.mjs', 'src/setup.mjs', 'src/transcript.mjs', 'src/uninstall.mjs', 'src/update.mjs', 'src/zip.mjs'];
 const TOOLS = ['bridge_status', 'bridge_lanes_status', 'bridge_lane_watch_lines', 'bridge_coordinator_heartbeat', 'bridge_enqueue', 'bridge_receipt', 'bridge_cancel'];
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');

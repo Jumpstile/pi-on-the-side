@@ -1,8 +1,9 @@
 # Changelog
 
-## v1.0.10
+## v1.0.10 - 2026-11-27
 
 - Installed apps now shows only one Pi on the Side entry; upgrading cleans out old leftover entries.
+- Installed apps now shows the Pi on the Side logo.
 
 ## v1.0.9 - 2026-11-25
 
