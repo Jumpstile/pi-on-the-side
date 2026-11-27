@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.11 - 2026-11-27
+
+- Installing or upgrading no longer stops with a "too many saved OMP sessions" message just because OMP's saved-session folders hold thousands of small non-session files.
+
 ## v1.0.10 - 2026-11-27
 
 - Installed apps now shows only one Pi on the Side entry; upgrading cleans out old leftover entries.

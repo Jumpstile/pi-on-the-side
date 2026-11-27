@@ -1,6 +1,6 @@
 # Tester checklist
 
-Use the [v1.0.10 quickstart](release-quickstart.md). Pi on the Side is designed to work across OMP versions; compatibility problems are bugs to fix. Not every past or future release has been tested. Verify each release asset against the digest GitHub shows for it and record the exact source tag. No local patch or manual JSON configuration is needed.
+Use the [v1.0.11 quickstart](release-quickstart.md). Pi on the Side is designed to work across OMP versions; compatibility problems are bugs to fix. Not every past or future release has been tested. Verify each release asset against the digest GitHub shows for it and record the exact source tag. No local patch or manual JSON configuration is needed.
 
 1. Record Windows, Node, OMP and Claude Desktop versions. Use your own disposable saved session and provider account on the same computer.
 2. Run the one-line install from the quickstart (or `pots install`). Check that it downloads nothing but the release it checks. Expect one plain sentence that says what was done and the next step; every saved session you have is connected, and nothing has started OMP or proven a live connection. Run `pots install` again and check the per-user Apps entry, key, connection data and receipts remain intact. To test an upgrade, run `pots upgrade` over an older install while one OMP session is open: it must say "Upgraded to X. A session is open, so the new version starts with the next session." and must not ask you to close anything.

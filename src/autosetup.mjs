@@ -133,11 +133,13 @@ export async function discoverSessions(roots) {
     if (!await exists(dir)) return;
     await plain(dir, true);
     for (const row of await fs.readdir(dir, { withFileTypes: true })) {
-      if (++visited > 10000) fail(AUTO_ERRORS[3]);
       const file = path.join(dir, row.name);
       if (row.isSymbolicLink()) continue;
+      // Only folders and .jsonl session files count toward the limit; other files are never opened.
+      if (!row.isDirectory() && !(row.isFile() && row.name.endsWith('.jsonl'))) continue;
+      if (++visited > 10000) fail(AUTO_ERRORS[3]);
       if (row.isDirectory()) { if (depth >= 3) fail(AUTO_ERRORS[3]); await walk(file, depth + 1); }
-      else if (row.isFile() && row.name.endsWith('.jsonl')) {
+      else {
         await plain(file); const canonical = await fs.realpath(file);
         if (!seen.has(canonical.toLowerCase())) { seen.add(canonical.toLowerCase()); files.push(canonical); }
       }
