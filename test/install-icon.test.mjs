@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { pathToFileURL } from 'node:url';
 import { installationId, registerInstallation, uninstall, uninstallDefaults } from '../src/uninstall.mjs';
 
 const CHECKOUT = path.resolve(import.meta.dirname, '..');
@@ -46,13 +45,7 @@ test('Installed apps entry shows the logo from inside the install folder, upgrad
   assert.equal(f.rows.size, 0);
 });
 
-test('a build without the icon file still installs; the entry has no icon', async t => {
-  const f = await setup(t), copy = path.join(f.base, 'copy');
-  await fs.cp(path.join(CHECKOUT, 'src'), path.join(copy, 'src'), { recursive: true });
-  await fs.copyFile(path.join(CHECKOUT, 'package.json'), path.join(copy, 'package.json'));
-  const mod = await import(pathToFileURL(path.join(copy, 'src', 'uninstall.mjs')).href);
-  await mod.registerInstallation(f.root, { registry: f.registry });
-  assert.equal(f.rows.size, 1);
-  assert.equal(Object.hasOwn([...f.rows.values()][0], 'DisplayIcon'), false);
-  assert.equal(await exists(path.join(f.root, 'pots.ico')), false);
+test('the icon inside icon.mjs is exactly the logo file in assets', async () => {
+  const { ICON_BYTES } = await import('../src/icon.mjs');
+  assert.deepEqual(Buffer.from(ICON_BYTES), await fs.readFile(path.join(CHECKOUT, 'assets', 'pots.ico')));
 });

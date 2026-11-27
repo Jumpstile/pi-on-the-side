@@ -13,7 +13,7 @@
   "engines": {
     "node": ">=22"
   },
-  "runtimeFiles": ["NOTICE.md","SECURITY.md","assets/pots.ico","bin/bridge.mjs","bin/coordinator-resume.mjs","bin/mcp.mjs","extension/bridge.ts","package.json","src/autosetup.mjs","src/cli.mjs","src/clients.mjs","src/connections.mjs","src/control.mjs","src/controller.mjs","src/coordinator-heartbeat.mjs","src/coordinator-resume-setup.mjs","src/coordinator-resume.mjs","src/host.mjs","src/lane-status.mjs","src/lane-watch.mjs","src/live.mjs","src/mcp.mjs","src/model-setup.mjs","src/setup.mjs","src/transcript.mjs","src/uninstall.mjs","src/update.mjs","src/zip.mjs"],
+  "runtimeFiles": ["NOTICE.md","SECURITY.md","bin/bridge.mjs","bin/coordinator-resume.mjs","bin/mcp.mjs","extension/bridge.ts","package.json","src/autosetup.mjs","src/cli.mjs","src/clients.mjs","src/connections.mjs","src/control.mjs","src/controller.mjs","src/coordinator-heartbeat.mjs","src/coordinator-resume-setup.mjs","src/coordinator-resume.mjs","src/host.mjs","src/icon.mjs","src/lane-status.mjs","src/lane-watch.mjs","src/live.mjs","src/mcp.mjs","src/model-setup.mjs","src/setup.mjs","src/transcript.mjs","src/uninstall.mjs","src/update.mjs","src/zip.mjs"],
   "bin": {
     "omp-bridge": "bin/bridge.mjs"
   },

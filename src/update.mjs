@@ -31,10 +31,10 @@ const HEX = /^[0-9a-f]{64}$/;
 // installed version folder is judged by the list in its own release.json. So
 // changing this list never blocks an update or an upgrade: only a name that is
 // not a runtime-shaped file, or a missing launcher-critical file, is refused.
-export const RELEASE_FILES = Object.freeze(['NOTICE.md', 'SECURITY.md', 'assets/pots.ico', 'bin/bridge.mjs', 'bin/coordinator-resume.mjs', 'bin/mcp.mjs', 'extension/bridge.ts',
-    'package.json', 'src/autosetup.mjs', 'src/cli.mjs', 'src/clients.mjs', 'src/connections.mjs', 'src/control.mjs', 'src/controller.mjs', 'src/coordinator-heartbeat.mjs', 'src/coordinator-resume.mjs', 'src/coordinator-resume-setup.mjs', 'src/host.mjs', 'src/lane-status.mjs', 'src/lane-watch.mjs', 'src/live.mjs', 'src/mcp.mjs', 'src/setup.mjs', 'src/transcript.mjs',
+export const RELEASE_FILES = Object.freeze(['NOTICE.md', 'SECURITY.md', 'bin/bridge.mjs', 'bin/coordinator-resume.mjs', 'bin/mcp.mjs', 'extension/bridge.ts',
+    'package.json', 'src/autosetup.mjs', 'src/cli.mjs', 'src/clients.mjs', 'src/connections.mjs', 'src/control.mjs', 'src/controller.mjs', 'src/coordinator-heartbeat.mjs', 'src/coordinator-resume.mjs', 'src/coordinator-resume-setup.mjs', 'src/host.mjs', 'src/icon.mjs', 'src/lane-status.mjs', 'src/lane-watch.mjs', 'src/live.mjs', 'src/mcp.mjs', 'src/setup.mjs', 'src/transcript.mjs',
   'src/model-setup.mjs', 'src/uninstall.mjs', 'src/update.mjs', 'src/zip.mjs'].sort());
-const RUNTIME_NAME = /^(?:NOTICE\.md|SECURITY\.md|package\.json|assets\/pots\.ico|(?:bin|src|extension)\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:mjs|ts))$/;
+const RUNTIME_NAME = /^(?:NOTICE\.md|SECURITY\.md|package\.json|(?:bin|src|extension)\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:mjs|ts))$/;
 const CORE_FILES = ['bin/bridge.mjs', 'bin/mcp.mjs', 'extension/bridge.ts', 'package.json', 'src/cli.mjs'];
 const shaped = names => Array.isArray(names) && names.length <= 64 && names.every(name => typeof name === 'string' && RUNTIME_NAME.test(name)) &&
   new Set(names.map(name => name.toLowerCase())).size === names.length && CORE_FILES.every(name => names.includes(name));
