@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/pots-logo-256.png" width="128" alt="Pi on the Side logo"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/Jumpstile/pi-on-the-side/main/assets/pots-logo-256.png" width="128" alt="Pi on the Side logo"></p>
 
 # Pi on the Side!
 
